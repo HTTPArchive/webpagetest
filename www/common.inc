@@ -3,6 +3,12 @@
 // Use of this source code is governed by the Polyform Shield 1.0.0 license that can be
 // found in the LICENSE.md file.
 
+// TODO FIND A BETTER WAY TO DO THIS. MAYBE WITH SOME REROUTING AND SOME NOTIFICATIONS
+set_exception_handler(function($e) {
+  echo var_dump($e);
+  exit();
+});
+
 // Load app and composer-based dependencies
 require_once(__DIR__ . '/../vendor/autoload.php');
 
@@ -15,6 +21,8 @@ use WebPageTest\Util;
 use WebPageTest\User;
 use WebPageTest\RequestContext;
 
+// Create global request context for future use
+$request_context = new RequestContext($_REQUEST, $_SERVER);
 
 if (Util::getSetting('cp_auth')) {
   // Start session handling for this request
@@ -401,8 +409,6 @@ if (is_file('./settings/custom_common.inc.php')) {
     include('./settings/custom_common.inc.php');
 }
 
-// Create global request context for future use
-$request_context = new RequestContext($_REQUEST);
 if ($supportsSaml && !$supportsCPAuth) {
   $request_context->setUser($saml_user);
 }
