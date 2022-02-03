@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use WebPageTest\RequestContext;
 use WebPageTest\CPClient;
 use WebPageTest\Util;
 
-(function ($request) {
+(function (RequestContext $request) {
 
     $host = Util::getSetting('host');
 

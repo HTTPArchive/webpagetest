@@ -124,4 +124,5 @@ class CPClient
             throw new ClientException($e->getMessage());
         }
     }
+
 }
