@@ -141,7 +141,7 @@ class CPClient
         ]);
 
         $variables_array = array('id' => $id);
-        $contact_info = $this->graphqlClient->runQuery($gql, true, $variables_array);
+        $contact_info = $this->graphql_client->runQuery($gql, true, $variables_array);
         return $contact_info->getData()['contact'][0];
     }
 
@@ -168,7 +168,7 @@ class CPClient
               ])
           ])
         ]);
-        $page_info = $this->graphqlClient->runQuery($gql, true);
+        $page_info = $this->graphql_client->runQuery($gql, true);
         return $page_info->getData();
     }
 
@@ -197,7 +197,7 @@ class CPClient
         'companyName' => $options['company_name']
         ]);
 
-        $results = $this->graphqlClient->runQuery($gql, true, $variables_array);
+        $results = $this->graphql_client->runQuery($gql, true, $variables_array);
         return $results->getData();
     }
 }
