@@ -714,7 +714,7 @@ function BuildLocations( &$locations )
 *
 * @param mixed $locations
 */
-function FilterLocations(&$locations, $includeHidden = '',
+function FilterLocations(&$locations, $includePaid = false, $includeHidden = '',
                          $stripBrowser = null) {
     global $user, $admin;
     BuildLocations($locations);
@@ -732,6 +732,10 @@ function FilterLocations(&$locations, $includeHidden = '',
       }
       unset($locRef['hidden']);
 
+      //remove premium if not paid
+      if (isset($locRef['premium']) && !$includePaid) {
+        unset($locations[$name]);
+      }
       // see if the location is restricted
       if (isset($locations[$name]) && isset($locRef['restricted'])) {
         $remove = true;
@@ -1122,6 +1126,7 @@ function GetTestInfoHtml($includeScript = true)
     $run = null;
     if (array_key_exists('run', $_REQUEST))
       $run = intval($_REQUEST['run']);
+    
     if (isset($run) && isset($test) && is_array($test) && isset($test['testinfo']['test_runs'][$run]['tester']))
       $html .= '<li>Tester: ' . $test['testinfo']['test_runs'][$run]['tester'] . '</li>';
     elseif (isset($test) && is_array($test) && isset($test['testinfo']['tester']) )
@@ -1509,6 +1514,9 @@ function GetDailyTestNum() {
 }
 
 function AddTestJob($location, $job, $test, $testId) {
+  global $request_context;
+  $priority = $request_context->getUser()->getUserPriority();
+
   $ret = false;
   if (isset($job) && strlen($job) && ValidateTestId($testId)) {
     $testPath = GetTestPath($testId);
@@ -1526,7 +1534,6 @@ function AddTestJob($location, $job, $test, $testId) {
         $json = null;
         $ret = true;
         $json = json_decode($job, true);
-        $priority = intval(GetSetting('user_priority', 0));
         if (isset($json['priority'])) {
           $priority = $json['priority'];
         }

@@ -40,10 +40,16 @@ else
     //
     require_once('./include/TestInfo.php');
     require_once('./include/TestResults.php');
+    require_once __DIR__ . '/../include/RunResultHtmlTable.php';
+
     include 'video/filmstrip.inc.php';  // include the common php shared across the filmstrip code
     require_once('object_detail.inc');
     require_once('waterfall.inc');
+    
     //
+
+
+    
     $testPath = GetTestPath($tests[0]['id']);
     $testInfo = TestInfo::fromFiles($testPath);
     $testResults = TestResults::fromFiles($testInfo);
@@ -73,6 +79,56 @@ else
         }
     }
 
+
+    // See if all tests are the same ID or from a compared experiment not
+    $sameIDs = true;
+    foreach($tests as $key=>$value) {
+        if($key !== 0 && $value['id'] !== $tests[$key - 1]['id'] ){
+            $sameIDs = false;
+        }
+    }
+
+    $compareTestPath = GetTestPath($tests[0]['id']);
+    $compareTestInfo = TestInfo::fromFiles($testPath);
+    $testTest = $compareTestInfo->getRawData()['test'];
+    $testTestInfo = $compareTestInfo->getRawData()['testinfo'];
+    if( count($tests) === 2 && $testTestInfo['metadata'] ) {
+        $metaInfo = $testTestInfo['metadata'];
+        if( $metaInfo ){
+            $metaInfo = json_decode($metaInfo, true);
+            if( $metaInfo['experiment'] ){
+                $experiment = true;
+                // NOTE: this file re-does these variables due to the $tests param (not test), unique to compare page
+                $experimentOriginalTestUrlGenerator = UrlGenerator::create(FRIENDLY_URLS, "", $metaInfo['experiment']['source_id'], 0, 0 );
+                $experimentOriginalTestHref = $experimentOriginalTestUrlGenerator->resultSummary();
+                $experimentOriginalExperimentsHref = $experimentOriginalTestUrlGenerator->resultPage("experiments");
+
+                $controlTestUrlGenerator = UrlGenerator::create(FRIENDLY_URLS, "", $metaInfo['experiment']['control_id'], 0, 0 );
+                $controlTestHref = $controlTestUrlGenerator->resultSummary();
+
+                $experimentResultsHref = "/video/compare.php?tests=" . $tests[0]['id'] . ',' . $metaInfo['experiment']['control_id'];
+                $experimentTestHref = "/result/" . $tests[0]['id'];
+
+                $experimentOptsUrlGenerator= UrlGenerator::create(FRIENDLY_URLS, "", $tests[0]['id'], 0, 0 );
+                $experimentOptsHref = $experimentOptsUrlGenerator->resultPage("experiments");
+            }
+        }
+    }
+
+    
+    if( $sameIDs || $experiment ){
+        $test['test'] = $testTest;
+        $test['testinfo'] =  $testTestInfo;
+    }
+
+
+    
+    
+
+
+
+
+
     $stickyFilmstrip = true; 
     if( array_key_exists('filmstripScrollWithPage', $_GET) && strlen($_GET['filmstripScrollWithPage'])) {
         $stickyFilmstrip = false; 
@@ -88,7 +144,7 @@ else
     <!DOCTYPE html>
     <html lang="en-us">
         <head>
-            <title>WebPageTest - Visual Comparison</title>
+            <title>WebPageTest - <?php echo ($experiment ? "Experiment Results" : "Visual Comparison"); ?></title>
             <script>document.documentElement.classList.add('has-js');</script>
 
             <?php
@@ -102,11 +158,15 @@ else
                 <meta http-equiv="refresh" content="10" />
                 </noscript>
                 <script language="JavaScript">
-                setTimeout( "window.location.reload(true)", 10000 );
+                let reloadTimeout = setTimeout( "window.location.reload(true)", 10000 );
                 </script>
             <?php
                 }
                 $gaTemplate = 'Visual Comparison';
+                $useScreenshot = true;
+                $socialTitle = $experiment ? "WebPageTest Pro Experiment Results" : "WebPageTest Visual Performance Comparison";
+                $socialDesc = $experiment ? "Check out this WebPageTest Pro Experiment: " : "Check out this visual page loading comparison.";
+
                 include ('head.inc');
             ?>
             <style>
@@ -348,12 +408,19 @@ else
                 }
                 ?>
             </style>
+
+
+            
         </head>
-        <body class="result compare">
+        <body class="result compare <?php if($experiment){ echo ' compare-experiment'; }  if($req_screenshot){ echo ' screenshot'; } if(!$ready){ echo ' compare-loading'; }   ?>">
                 <?php 
                 $tab = 'Test Result';
                 //$nosubheader = false;
-                $subtab = 'Filmstrip';
+                if( $experiment ){
+                    $subtab = 'Experiment Results & Filmstrip';
+                } else {
+                    $subtab = 'Filmstrip';
+                }
 
                 //$headerType = 'video';
                 $filmstrip = $_REQUEST['tests'];
@@ -373,39 +440,107 @@ else
             
                        <div class="results_header">
                             <?php 
-                                if (count($tests) > 1 ) {
-                                    echo '<h2>Filmstrip Comparison</h2>';
+
+
+
+                                if( !$experiment ){
+                                    if (count($tests) > 1 ) {
+                                        echo '<h2>Filmstrip Comparison</h2>';
+                                    }
+                                    else {
+                                        echo '<h2>Filmstrip View</h2>';
+                                    }
+                                    echo '<p>Use this page to explore and compare timing and request details from one or more tests.</p>';
+                                } else {
+                                    echo '<h2>Experiment Results</h2>';
+                                    echo '<div class="experiment_meta">';
+                                    echo '<div class="experiment_meta_included">';
+                                    echo '<p>Experiments Applied:</p>';
+                                    echo '<ul>';
+                                    include __DIR__ . '/../experiments/list_applied.inc';
+
+                                    echo "<li><a class=\"experiment_meta-more\" href=\"". $experimentOriginalExperimentsHref ."\">Experiment More</a></li>";
+                                    echo '</ul>';
+                                    echo '</div>';
+                                    echo '<div class="experiment_meta_urls">';
+
+                                    echo '<p>Links:</p>';
+                                    echo "<ul>
+                                    <li><a href=\"". $experimentResultsHref ."\">Experiment Results</a></li>
+                                    <li><a href=\"". $experimentTestHref ."\">Experiment</a></li>
+                                    <li><a href=\"". $controlTestHref ."\">Control</a></li>
+                                    <li><a href=\"". $experimentOriginalTestHref ."\">Original</a></li>
+                                    </ul>";
+                                    echo "</div>";
+                                    echo "</div>"; ?>
+
+<?php
+
+echo '<div class="experiment_impact"><h3 class="hed_sub">Experiment Impact <em>(Notable changes between experiment and control)</em></h3>';
+include __DIR__ . '/../experiments/findings.inc';
+echo "</div>";
+
+?>
+
+
+                                    <div class="experiment_opportunities">
+                                    <?php 
+                                        include __DIR__ . '/../experiments/compare-assessments.inc'; 
+                                        // if(count($assessmentChanges)){
+                                        //     $numAssessmentChanged = count($assessmentChanges);
+                                        //     $assessEnding = $numAssessmentChanged === 1 ? "" : "s";
+                                        //     echo '<div class="experiment_opportunities-resolved">
+                                        //         <h3 class="hed_sub">Resolved Opportunities</h3>
+                                        //         <p>This experiment resolved '. $numAssessmentChanged .' bottleneck' . $assessEnding .':</p>
+                                        //             <ol>';
+                                                
+                                        //     foreach($assessmentChanges as $change){
+                                        //         echo '<li class="good">' . $change . '</li>';
+                                        //     }
+                                        // echo '</ol></div>';
+                                        // }
+                                    ?>
+
+                                        
+                                        <div class="experiment_opportunities-remaining">
+                                            <h3 class="hed_sub">Remaining Opportunities</h3>
+                                            <p>Here's how your overall opportunities look after this experiment:</p>
+                                            <?php include __DIR__ . '/../experiments/summary.inc'; ?>
+                                        </div>
+                                    </div>
+
+                                   
+
+                                    
+
+
+                                    <?php
+
+                                    echo '<h3 class="hed_sub">Filmstrip Comparison <em>(Experiment vs. Control)</em></h3>';
+
+                                   
+
                                 }
-                                else {
-                                    echo '<h2>Filmstrip View</h2>';
-                                }
+                                
                             ?>
-                            <p>Use this page to explore and compare timing and request details from one or more tests.</p>
+                            
                     <?php
-                    // //build out an expanded link
-                     if ($testResults->countRuns() > 1 && count($tests) == 1) {
-                         $link = '/video/compare.php?tests=';
-                         $cnt = 1;
-                         do {
-                             $link .= $tests[0]['id'] . '-r:' . $cnt . '-c:0';
-                             if ($tests[0]['step']) {
-                                 $link .= '-s:' . $test['step'];
-                             }
-                             $link .= ',';
-                             $cnt++;
-                         } while ($cnt <= $testResults->countRuns());
-                         echo '<a class="compare-all-link" href="' . substr($link,0,-1) . '">Compare all runs</a>';
-                     }
+
+
+
+   
                      ?>
                         </div>
             
-                        <?php include("testinfo_command-bar.inc"); ?>
+                        
             
                         </div>
             
-            
+                        
                         <div id="result" class="results_body">
-<?php
+
+
+<?php 
 
                     echo '<div class=""><div class="test_results-content">';
                     echo '<div class="test_results_header">';
@@ -914,11 +1049,29 @@ function ScreenShotTable()
 function DisplayStatus()
 {
     global $tests;
+    global $experiment;
+    global $metaInfo;
 
     echo '<div class="results_main_contain">
-    <div class="results_main">
-    <div class="results_header"><h2>Filmstrip Comparison</h2><p>Please wait while the tests are run...</p></div>
-    <div id="result" class="results_body">';
+    <div class="results_main">';
+
+    if( $experiment ){
+        echo '<div class="results_header"><h1>WebPageTest <span class="pro-flag">Pro</span> Experiment</h1><p>Please wait while the tests are run...</p></div>';
+    } else {
+        echo '<div class="results_header"><h1>Filmstrip Comparison</h1><p>Please wait while the tests are run...</p></div>';
+    }
+
+    echo '<div id="result" class="results_body">';
+
+    if( $metaInfo && $metaInfo['experiment'] ){
+    echo '<div class="experiment_meta"><div class="experiment_meta_included"><p>Experiments running:</p>';
+    echo '<ul>';
+    include __DIR__ . '/../experiments/list_applied.inc';
+    
+    echo '</ul></div></div>';
+    }
+
+
     echo "<div class='scrollableTable'><table id=\"statusTable\" class=\"pretty\"><tr><th>Test</th><th>Status</th></tr><tr>";
     foreach($tests as &$test)
     {

@@ -52,7 +52,6 @@ $userImages = true;
                 <h2>Page Images</h2>
                 <p>The following requests were images.</p>
             </div>
-                        <?php include("testinfo_command-bar.inc"); ?>
 
             </div>
 
@@ -68,7 +67,7 @@ $userImages = true;
         }
         ?>
         <p>Images are currently being served from the given URL, and might not necessarily match what was loaded at the time of the test.</p>
-        <div class="scrollableTable"><table class="images pretty">
+        <div class="scrollableTable"><table class="images">
           <?php
           foreach( $requests as &$request ) {
             if( array_key_exists('contentType', $request) &&

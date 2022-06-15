@@ -8,6 +8,7 @@
 
 .fg-modal legend {
   font-size: 1.875rem;
+  line-height: 2rem;
 }
 
 .fg-modal .required::after {
@@ -15,26 +16,23 @@
   content: '*';
 }
 
-.fg-modal .save-button button {
-  background-color: #2c97ff;
-  border-radius: 2px;
-  appearance: none;
-  border: 1px solid rgb(0, 120, 212);
-  color: white;
-  font-size: 13px;
-  height: 30px;
-  padding: 0 17px;
+.fg-modal .save-button,
+.fg-modal .cancel-button {
+  display: inline-flex;
 }
 
 .fg-modal label {
   display: block;
 }
 
+
+/*
+This was messing up the change password modal
 .fg-modal .section:first-child {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
+} */
 
 .fg-modal .section:not(:first-child),
 .fg-modal .save-button {
@@ -69,12 +67,35 @@
 body.theme-b {
   background: rgb(234, 234, 234);
 }
+
 .my-account-page {
   margin: 0 auto;
   width: 72%;
+  box-sizing: border-box;
 }
 
-.subhed, .card {
+/** Account page mobile styles **/
+@media screen and (max-width: 400px) {
+  .my-account-page {
+    width: 95%;
+  }
+
+  .subhed {
+    margin-left: 1.5rem;
+  }
+
+  .card.subscribe {
+    padding: 0;
+  }
+
+  .card.subscribe h3,
+  .card.subscribe p {
+    padding: 1.5rem;
+  }
+}
+
+.subhed,
+.card {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -105,7 +126,7 @@ body.theme-b {
   align-items: flex-start;
   background-color: rgb(255, 255, 255);
   margin-bottom: 30px;
-  padding: 30px;
+  padding: 1.5rem;
   border-radius: 10px;
   box-shadow: rgb(0 0 0 / 10%) 1px 1px 4px 0px;
 }
@@ -167,13 +188,16 @@ body.theme-b {
   background: rgba(0, 0, 0, .5);
   display: none;
 }
+
 .modal {
   visibility: hidden;
 }
+
 .modal-open {
   visibility: visible;
 }
-.modal-open + .modal_screen {
+
+.modal-open+.modal_screen {
   display: block
 }
 
@@ -206,6 +230,7 @@ body.theme-b {
   overflow: hidden;
   text-indent: -999px;
 }
+
 .modal_close:before,
 .modal_close:after {
   content: "";
@@ -217,12 +242,14 @@ body.theme-b {
   position: absolute;
   transform: rotate(-45deg);
 }
+
 .modal_close:after {
   transform: rotate(45deg);
 }
 
 
 /* inert polyfill styles */
+
 [inert] {
   pointer-events: none;
   cursor: default;
@@ -236,14 +263,20 @@ body.theme-b {
   -ms-user-select: none;
 }
 
+
+#wpt-account-signup h3 {
+  text-align: center;
+}
+
 /**
  * account page specific modal things
  */
+
 @media(min-width: 55rem) {
   .account-layout .modal-open {
     top: 50%;
     left: 50%;
-    transform: translate(-50%,-50%);
+    transform: translate(-50%, -50%);
     max-width: 800px;
   }
 }
@@ -252,6 +285,7 @@ body.theme-b {
   display: flex;
   align-content: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .plan-billing-container * {
@@ -262,62 +296,159 @@ body.theme-b {
   display: block;
 }
 
-.billing-container {
-  width: 70%;
-}
-
 .billing-info-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
   gap: 0px 5px;
-  grid-template-areas:
-    "street-address street-address"
-    "city state"
-    "country zipcode";
+  grid-template-areas: "street-address street-address""city state""country zipcode";
 }
 
-.street-address { grid-area: street-address; }
-.city { grid-area: city; }
-.state { grid-area: state; }
-.country { grid-area: country; }
-.zipcode { grid-area: zipcode; }
+.street-address {
+  grid-area: street-address;
+}
+
+.city {
+  grid-area: city;
+}
+
+.state {
+  grid-area: state;
+}
+
+.country {
+  grid-area: country;
+}
+
+.zipcode {
+  grid-area: zipcode;
+}
 
 .billing-info-section input,
 .billing-info-section select {
-  border: 1px solid rgb(204, 204, 204);;
+  border: 1px solid rgb(204, 204, 204);
   border-radius: 2px;
   width: 100%;
   max-width: 100%;
 }
 
-.plan-details-container {
-  width: 25%;
+.billing-container {
+  width: 100%;
 }
 
+@media (min-width: 1400px) {
+  .plan-details-container {
+    width: 25%;
+  }
+
+  .billing-container {
+    width: 70%;
+  }
+
+  .wpt-plan-set .wpt-plan {
+    min-width: 180px;
+  }
+}
+
+.wpt-plans {
+  border: 0;
+  padding: 0;
+}
+
+.wpt-plans .radiobutton-group {
+  margin-bottom: 2em;
+}
+
+.wpt-plans input[name=plan-type] {
+  position: absolute !important;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  width: 1px;
+  border: 0;
+  overflow: hidden;
+}
+
+
 .wpt-plan-set {
+  display: none;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.wpt-plan-set .pill-button {
+  margin-top: 1rem;
+}
+
+.wpt-plans input[name=plan-type][value=monthly]:checked~.wpt-plan-set.monthly-plans,
+.wpt-plans input[name=plan-type][value=annual]:checked~.wpt-plan-set.annual-plans {
   display: flex;
 }
 
-.form-wrapper-radio {
+.wpt-plan-set .form-wrapper-radio {
   position: relative;
 }
 
-.form-wrapper-radio input[type=radio] {
+.wpt-plan-set .form-wrapper-radio input[type=radio] {
   position: absolute;
   opacity: 0;
   top: 0;
   left: 0;
 }
 
-.form-wrapper-radio input[type=radio]:checked + .wpt-plan {
+.wpt-plan-set .wpt-plan {
+  display: block;
+  cursor: pointer;
+  color: rgb(67, 129, 229);
+  font-weight: normal;
+  margin-bottom: 0.5em;
+  margin-top: 0;
+}
+
+.wpt-plan-set .wpt-plan h5 {
+  margin-top: 0;
+}
+
+.wpt-plan-set .form-wrapper-radio input[type=radio]:checked+.wpt-plan {
   background-color: rgb(230, 242, 255);
   border: 1px solid rgb(47, 128, 237);
 }
 
-.form-wrapper-radio .wpt-plan {
+.wpt-plan-set .wpt-plan .select-indicator {
   display: block;
-  cursor: pointer;
+  text-align: center;
+  padding: 0.5em 0.8125rem;
+  background-color: rgb(67, 129, 229);
+  color: rgb(255, 255, 255);
+  border: 1px solid rgb(0, 120, 212);
+  border-radius: 3px;
+  user-select: none;
+  margin-top: 2em;
+}
+
+.wpt-plan-set .form-wrapper-radio input[type=radio]:checked+.wpt-plan .select-indicator {
+  background-color: transparent;
+  color: rgb(0, 120, 212);
+}
+
+.wpt-plan-set .form-wrapper-radio input[type=radio]:checked+.wpt-plan .select-indicator::before,
+.wpt-plan-set .form-wrapper-radio input[type=radio]:checked+.wpt-plan .select-indicator::after {
+  display: inline-block;
+}
+
+.wpt-plan-set .form-wrapper-radio input[type=radio]:checked+.wpt-plan .select-indicator::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M4 10L8 14L12 10L16 6' stroke='%232F80ED' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center center no-repeat;
+  content: "";
+  width: 1.0625em;
+  height: 1.0625em;
+  margin-right: 5px;
+  position: relative;
+  top: 2px;
+}
+
+.wpt-plan-set .form-wrapper-radio input[type=radio]:checked+.wpt-plan .select-indicator::after {
+  content: "ed";
 }
 
 /**
@@ -330,8 +461,35 @@ body.theme-b {
   margin-top: 0;
 }
 
+.signup-step-1-content {
+  margin: 0 auto;
+  max-width: 1400px;
+  padding: 0 3rem;
+}
+
 .signup-step-1-content * {
   box-sizing: border-box;
+}
+
+.radio-button label {
+  padding: .5em 2em !important
+}
+
+.radio-button:first-child label {
+  border-top-left-radius: 1rem;
+  border-bottom-left-radius: 1rem;
+}
+
+.radio-button:last-child label {
+  border-top-right-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+.signup-step-1-content h2 {
+  text-align: center;
+  font-size: 1.1em;
+  margin: 0 0 1em;
+  display: block;
 }
 
 .signup-feature {
@@ -340,108 +498,61 @@ body.theme-b {
 }
 
 .signup-hed-contain {
-  padding: 0 3rem;
+  color: white;
   background-color: #6b25cf;
-  background-image: url(/images/signup-bg.png);
-  background-size: cover;
+  background-image: url(/images/src/white-swoop.svg), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 400'%3E%3Cdefs%3E%3CradialGradient id='a' cx='396' cy='281' r='514' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%237D0688'/%3E%3Cstop offset='1' stop-color='%23150033'/%3E%3C/radialGradient%3E%3ClinearGradient id='b' gradientUnits='userSpaceOnUse' x1='400' y1='148' x2='400' y2='333'%3E%3Cstop offset='0' stop-color='%23D617C5' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23D617C5' stop-opacity='0.5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23a)' width='800' height='400'/%3E%3Cg fill-opacity='0.49'%3E%3Ccircle fill='url(%23b)' cx='267.5' cy='61' r='300'/%3E%3Ccircle fill='url(%23b)' cx='532.5' cy='61' r='300'/%3E%3Ccircle fill='url(%23b)' cx='400' cy='30' r='300'/%3E%3C/g%3E%3C/svg%3E");
+  background-position: bottom -15px left 50%, bottom 0 left 50%;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100%, cover;
+  display: flex;
+}
+
+
+/* when your monitor is really wide */
+
+@media only screen and (min-width: 1025px) {
+  .signup-hed-contain {
+    background-position: bottom -60px left 50%, bottom 0 left 50%;
+  }
+}
+
+.signnup-hed .price {
+  color: #F9D856;
+  font-weight: 600;
 }
 
 .signup-hed {
   font-size: 1.75rem;
-  padding: 0 5rem;
+  padding: 0 3rem 6.5rem;
+  line-height: 2.5rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.signup-hed p {
+  margin: 0 0 1rem;
+  max-width: 700px;
 }
 
 .ico-yellowcursor {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='59' height='59' viewBox='0 0 59 59' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M39.5229 18.7224C40.0744 19.2876 40.4553 20.1964 40.1815 21.1661L40.0148 21.7564C37.4717 30.7624 34.1034 39.3992 29.9498 47.5614C29.4012 48.6394 28.2748 48.8933 27.4103 48.6681C26.5645 48.4478 25.7894 47.7565 25.5679 46.7365L23.5167 37.2938C23.29 36.2501 22.429 35.3871 21.4584 35.1679L12.2722 33.0934C11.2368 32.8596 10.578 32.0457 10.3712 31.2186C10.1635 30.3878 10.3715 29.2526 11.4336 28.6753C19.3552 24.3692 27.7422 20.869 36.4922 18.2168L37.0653 18.0431C38.057 17.7425 38.9729 18.1587 39.5229 18.7224ZM37.675 20.5529L37.2403 20.6847C28.8487 23.2283 20.8013 26.5655 13.1904 30.6571L22.0264 32.6525C24.0073 33.0998 25.6043 34.756 26.0367 36.7463L27.9875 45.7269C31.9092 37.914 35.1036 29.6589 37.5331 21.0556L37.675 20.5529Z' fill='%23FFC830'/%3E%3C/svg%3E");
 }
 
+
 /**
  * End signup step 1
  */
 
-.card-container {
-  display: flex;
-  flex-direction: row;
-  align-content: center;
-  justify-content: space-around;
-  max-width: 780px;
-  margin: 0 auto;
-}
-.card-container .card {
-  display: block;
-  width: 370px;
-  height: 715px;
-  padding: 0;
-}
-.card-container .card fieldset {
-  padding: 20px 30px 30px;
-  margin: 0;
-  border: 0;
-}
-.card-container .card fieldset legend {
-  padding-top: 1.875rem;
-  text-align: center;
-  font-size: 28px;
-  font-weight: 300;
-  color: #111111;
-  line-height: 2.375rem;
-}
-.card-container .card fieldset h3 {
-  font-size: 1.5rem;
-  line-height: 1.6rem;
-  margin: 0;
-  padding: 0.5625rem 0;
-  font-weight: 400;
-}
-.card-container .card fieldset select {
-  font-size: 1.5rem;
-  padding: 0.5625rem 31.5px 0.5625rem 10px;
-  line-height: 1.6rem;
-  border: 1px solid #666666;
-}
-.card-container .card fieldset .price {
-  margin: 10px 0 20px;
-}
-.card-container .card button[type="submit"] {
-  appearance: none;
-  width: 100%;
-  border: 0;
-  background: #F9D856;
-  border-radius: 4px;
-  padding: 1rem 0;
-}
-.card .annual,
-.card .monthly {
-  display: none;
-}
-.card .annual.selected,
-.card .monthly.selected {
-  display: block;
-}
 
-.benefits-list {
-  border-top: 1px solid #D0D0D0;
-  margin-top: 1rem;
-}
 
-.benefits-list li {
-  padding: .5rem 20px;
-}
-
-.benefits-list li:nth-child(even) {
-  background: #F8F8F8;
-}
-
-/**
- * end signup steps
- */
 
 /**
  * begin signup step 2
  */
 
 .signup-flow-layout * {
- box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 .signup-flow-layout body {
@@ -463,12 +574,14 @@ body.theme-b {
   display: flex;
   justify-content: space-around;
 }
+
 .signup-flow-layout header li {
   margin-left: 40px;
   color: #D0D0D0;
   font-weight: 400;
   font-size: 1.125rem;
 }
+
 .signup-flow-layout header .selected {
   color: #A9C8F1;
   font-weight: 700;
@@ -490,16 +603,17 @@ body.theme-b {
   .signup-flow-layout header ol {
     margin-left: 0;
   }
+
   .signup-flow-layout header .free-plan {
     margin-left: 0;
   }
 }
 
-
 @media(min-width: 86.25rem) {
   .signup-flow-layout header ol {
     margin-left: calc(50vw - 43.4375rem);
   }
+
   .signup-flow-layout header .free-plan {
     margin-left: calc(50vw - 39rem);
   }
@@ -510,9 +624,7 @@ body.theme-b {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 0px 0px;
-  grid-template-areas:
-      "."
-      ".";
+  grid-template-areas: "."".";
   width: 100vw;
   height: 100vh;
 }
@@ -534,7 +646,9 @@ body.theme-b {
 .signup-flow-layout section .content {
   width: 400px;
   margin: 0 auto;
+  max-width: 90vw;
 }
+
 .signup-flow-layout .payment-details .content {
   width: 535px;
 }
@@ -569,13 +683,33 @@ body.theme-b {
   padding: 0.6875rem 1.3125rem;
 }
 
-.signup-flow-layout .form-input button[type=submit] {
+.signup-flow-layout .form-input button[type=submit],
+.signup-button {
   appearance: none;
-  width: 100%;
-  padding: 0.9375rem 0;
+  width: auto;
   background-color: #F9D856;
-  border: 1px solid #F9D856;
-  border-radius: 4px;
+  border: 0;
+  border-radius: 2rem;
+  cursor: pointer;
+  display: inline-block;
+  padding: .7em 2.2em;
+}
+
+.signup-flow-layout .form-input button[type=submit]:disabled,
+.signup-button:disabled {
+  cursor: auto;
+}
+
+a.button {
+  text-decoration: none;
+  display: block;
+  color: #111;
+}
+
+a.button {
+  text-decoration: none;
+  display: inline-block;
+  color: #111;
 }
 
 .signup-flow-layout .form-input .description,
@@ -593,25 +727,28 @@ body.theme-b {
   color: #DADADA;
   padding: 70px 30px;
 }
+
 .signup-flow-layout aside h3 {
   font-size: 1.25rem;
   line-height: 1.6875rem;
 }
+
 .signup-flow-layout .plan-name {
   font-weight: 400;
   font-size: 1.25rem;
   line-height: 1.6875rem;
 }
+
 .signup-flow-layout .plan-details {
   border-top: 1px solid #808080;
 }
+
 .signup-flow-layout .plan-details table {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr;
   gap: 0px 0px;
-  grid-template-areas:
-      "." ".";
+  grid-template-areas: "."".";
 }
 
 .signup-flow-layout .plan-details table thead tr,
@@ -620,14 +757,13 @@ body.theme-b {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 0px 0px;
-  grid-template-areas:
-      "."
-      ".";
+  grid-template-areas: "."".";
 }
 
 .signup-flow-layout .plan-details table th {
   text-align: left;
 }
+
 .signup-flow-layout .plan-details table td {
   text-align: right;
 }
@@ -643,16 +779,29 @@ body.theme-b {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
   gap: 0px 10px;
-  grid-template-areas:
-    "address address"
-    "city st"
-    "country zip";
+  grid-template-areas: "address address""city st""country zip";
 }
-.billing-address-information-container .address { grid-area: address; }
-.billing-address-information-container .city { grid-area: city; }
-.billing-address-information-container .country { grid-area: country; }
-.billing-address-information-container .zip { grid-area: zip; }
-.billing-address-information-container .state { grid-area: st; }
+
+.billing-address-information-container .address {
+  grid-area: address;
+}
+
+.billing-address-information-container .city {
+  grid-area: city;
+}
+
+.billing-address-information-container .country {
+  grid-area: country;
+}
+
+.billing-address-information-container .zip {
+  grid-area: zip;
+}
+
+.billing-address-information-container .state {
+  grid-area: st;
+}
+
 
 /*
  * End signup step 2
@@ -660,22 +809,28 @@ body.theme-b {
 
 .signup-flow-layout header {
   padding-left: 0;
+  background: #141E33;
 }
+
 .signup-flow-layout header .logo {
   border-bottom: 1px solid rgba(255, 255, 255, .3);
   padding-bottom: 1.5rem;
 }
+
 .signup-flow-layout header ol {
   padding-left: 0;
   display: flex;
   justify-content: space-around;
+  align-items: center;
 }
+
 .signup-flow-layout header li {
   margin-left: 40px;
   color: #D0D0D0;
   font-weight: 400;
   font-size: 1.125rem;
 }
+
 .signup-flow-layout header .selected {
   color: #A9C8F1;
   font-weight: 700;
@@ -686,9 +841,7 @@ body.theme-b {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 0px 0px;
-  grid-template-areas:
-      "."
-      ".";
+  grid-template-areas: "."".";
   width: 100vw;
   height: 100vh;
 }
@@ -709,6 +862,7 @@ body.theme-b {
   .signup-flow-layout ol {
     margin-left: 0;
   }
+
   .signup-flow-layout .free-plan {
     margin-left: 0;
   }
@@ -726,6 +880,7 @@ body.theme-b {
   .signup-flow-layout ol {
     margin-left: calc(50vw - 43.4375rem);
   }
+
   .signup-flow-layout .free-plan {
     margin-left: calc(50vw - 39rem);
   }
@@ -743,9 +898,12 @@ body.theme-b {
 .api-consumers .info {
   overflow: scroll;
 }
+
+
 /**
  * sortable table
  */
+
 .sr-only {
   position: absolute;
   top: -30em;
@@ -764,7 +922,6 @@ table.sortable thead tr {
   border-bottom: thin solid #c8c8c8;
 }
 
-
 table.sortable tbody tr {
   border-bottom: thin solid #eaeaea;
 }
@@ -773,7 +930,6 @@ table.sortable tbody tr:hover {
   background: #e1dfdd;
   color: #323130;
 }
-
 
 table.sortable td,
 table.sortable th {
@@ -821,21 +977,21 @@ table.sortable th button span {
 }
 
 table.sortable th[aria-sort="descending"] span::after {
-  content: "▼";
+  content: "â–¼";
   color: currentColor;
   font-size: 50%;
   top: 0;
 }
 
 table.sortable th[aria-sort="ascending"] span::after {
-  content: "▲";
+  content: "â–²";
   color: currentColor;
   font-size: 50%;
   top: 0;
 }
 
 table.show-unsorted-icon th:not([aria-sort]) button span::after {
-  content: "♢";
+  content: "â™¢";
   color: currentColor;
   font-size: 50%;
   position: relative;
@@ -847,6 +1003,7 @@ table.sortable td.num {
   text-align: right;
 }
 
+
 /* Focus and hover styling */
 
 table.sortable th button:focus,
@@ -857,14 +1014,17 @@ table.sortable th button:hover {
 
 table.sortable th:not([aria-sort]) button:focus span::after,
 table.sortable th:not([aria-sort]) button:hover span::after {
-  content: "▼";
+  content: "â–¼";
   color: currentColor;
   font-size: 50%;
   top: 0;
 }
+
+
 /**
  * End sortable table
  */
+
 
 /**
  * Toggleable area
@@ -879,16 +1039,17 @@ table.sortable th:not([aria-sort]) button:hover span::after {
 }
 
 .create-delete-button-container {
-    font-size: 0.8125rem;
-    background-color: #f4f4f4;
-    border-bottom: 1px solid #c8c8c8;
-    border-top: 1px solid #c8c8c8;
-    display: flex;
-    align-content: center;
-    justify-content: flex-start;
+  font-size: 0.8125rem;
+  background-color: #f4f4f4;
+  border-bottom: 1px solid #c8c8c8;
+  border-top: 1px solid #c8c8c8;
+  display: flex;
+  align-content: center;
+  justify-content: flex-start;
 }
 
-.create-delete-button-container button {
+.create-delete-button-container button,
+.create-delete-button-container label {
   appearance: none;
   border: 0;
   height: 3.4em;
@@ -902,6 +1063,10 @@ table.sortable th:not([aria-sort]) button:hover span::after {
   color: #323232;
 }
 
+.create-delete-button-container label {
+  line-height: 3.6em;
+}
+
 .create-delete-button-container .new-api-key {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M17 9V10H10V17H9V10H2V9H9V2H10V9H17Z' fill='%23006AD4'/%3E%3C/svg%3E");
 }
@@ -910,7 +1075,7 @@ table.sortable th:not([aria-sort]) button:hover span::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M12 4V3C12 2.73478 11.8946 2.48043 11.7071 2.29289C11.5196 2.10536 11.2652 2 11 2H8C7.73478 2 7.48043 2.10536 7.29289 2.29289C7.10536 2.48043 7 2.73478 7 3V4H2V5H4V17C4 17.2652 4.10536 17.5196 4.29289 17.7071C4.48043 17.8946 4.73478 18 5 18H14C14.2652 18 14.5196 17.8946 14.7071 17.7071C14.8946 17.5196 15 17.2652 15 17V5H17V4H12ZM8 3H11V4H8V3ZM14 17H5V5H14V17ZM8 15H7V7H8V15ZM10 15H9V7H10V15ZM12 15H11V7H12V15Z' fill='%23006AD4'/%3E%3C/svg%3E");
 }
 
-.create-delete-button-container .delete-key:disabled {
+.create-delete-button-container .delete-key.disabled {
   color: inherit;
   opacity: 0.3;
   cursor: auto;
@@ -959,6 +1124,7 @@ table.sortable th:not([aria-sort]) button:hover span::after {
   background-color: #106ebe;
 }
 
+
 /**
  * Hideable cell
  */
@@ -994,7 +1160,8 @@ table.sortable th:not([aria-sort]) button:hover span::after {
 }
 
 .api-consumers .info .hidden-content {
-  min-width: 21em; /* API key length */
+  min-width: 21em;
+  /* API key length */
 }
 
 .billing-frequency-selector {
@@ -1029,7 +1196,7 @@ table.sortable th:not([aria-sort]) button:hover span::after {
   cursor: pointer;
 }
 
-.radiobutton-group input:checked + label {
+.radiobutton-group input:checked+label {
   background-color: #3881E5;
   color: #FFF;
   box-shadow: none;
@@ -1070,4 +1237,517 @@ table.sortable th:not([aria-sort]) button:hover span::after {
   background: transparent;
   font-size: 1rem;
   color: #2b94ff;
+}
+
+
+/*  ---------------------------------------------------------------
+ REDESIGN Step 1
+ ----------------------------------------------------------------*/
+
+
+/* Comparison table */
+
+.comparison-table {
+  border-collapse: collapse;
+  font-size: 1.15rem;
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.comparison-table tbody tr:nth-child(odd) {
+  background-color: #F4F4F4;
+}
+
+.comparison-table tbody td.custom-plan {
+  background-color: white;
+  vertical-align: top;
+  padding-top: 0;
+}
+
+.comparison-table tbody th {
+  text-align: left;
+}
+
+.comparison-table thead th:not(.custom-plan) {
+  vertical-align: top;
+}
+
+.comparison-table th.custom-plan {
+  padding: .5em 0 2em;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+  vertical-align: bottom;
+}
+
+.comparison-table thead th.section:not(:first-child),
+.comparison-table tbody td {
+  border-left: 4px solid white;
+}
+
+.comparison-table tr td,
+.comparison-table tr th {
+  padding: 0.8em;
+  width: 25%;
+}
+
+@media screen and (max-width: 768px) {
+  .comparison-table tr {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-around;
+  }
+
+  .comparison-table tbody td,
+  .comparison-table thead th {
+    display: block;
+    width: 50%;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+
+  .comparison-table thead th {
+    padding: 0.8em 0.3em;
+  }
+
+  .comparison-table tbody tr th:first-child {
+    background: #efefef;
+    width: 100%;
+  }
+
+  .comparison-table tbody tr td {
+    background-color: white;
+  }
+
+  .comparison-table thead th.section:not(:first-child),
+  .comparison-table tbody td {
+    border: 1px solid #D0D0D0;
+  }
+
+  .comparison-table tbody td.custom-plan,
+  .comparison-table thead th.custom-plan,
+  .comparison-table thead td {
+    display: none;
+  }
+
+  .comparison-table tbody tr.custom-plan-mobile {
+    background-color: white;
+    display: flex;
+  }
+}
+
+@media screen and (max-width: 370px) {
+
+  .comparison-table tbody td,
+  .comparison-table thead th {
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+}
+
+/* comparison table content */
+
+.icon.check {
+  background: #6ca71a url(/images/src/icon_grading_check.svg) left 50% no-repeat;
+  color: #fff;
+  border-radius: 100%;
+  font-weight: 900;
+  width: 1.4em;
+  height: 1.4em;
+  display: inline-block;
+  margin: 0 0.7em 0 0.5em;
+  text-align: center;
+  line-height: 1.5;
+  background-size: contain;
+  vertical-align: middle;
+}
+
+.icon.x-in-circle-temp {
+  -webkit-filter: grayscale(100%);
+  /* Safari 6.0 - 9.0 */
+  filter: grayscale(100%);
+  background: #6ca71a url(/images/render-block-icon.png) left 50% no-repeat;
+  color: #fff;
+  border-radius: 100%;
+  font-weight: 900;
+  width: 1.4em;
+  height: 1.4em;
+  display: inline-block;
+  margin: 0 0.7em 0 0.5em;
+  text-align: center;
+  line-height: 1.5;
+  background-size: contain;
+  vertical-align: middle;
+}
+
+.new-banner {
+  background: #00A850;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  padding: 0.3rem 0.5rem;
+  color: white;
+  font-style: normal;
+  float: right;
+}
+
+.plan-selector .plan-name {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 30px;
+  color: #2f80ed;
+  text-align: center;
+  margin: .5rem 0 1rem;
+  padding: 0 0 .5em;
+  border-bottom: 1px solid #1071ba;
+}
+
+.plan-selector select {
+  border: 1px solid;
+  border-radius: .5em;
+  padding: 0.6875em 1.6125em 0.6875em 1em;
+  box-shadow: 0 0 4px #e7e7e7;
+  border-color: #777;
+}
+
+.plan-selector .plan {
+  display: none;
+}
+
+.comparison-table .signup-button {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.plan-selector .price {
+  font-family: 'Open Sans';
+  color: #141e33;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 3.6875rem;
+}
+
+.plan-selector .runs {
+  font-size: 1.3rem;
+  height: 55px;
+  padding: 18px;
+  font-weight: 500;
+}
+
+.plan-selector .runs b {
+  font-weight: 500;
+}
+
+tr.custom-plan-mobile {
+  display: none;
+}
+
+
+/* end of comparison table content */
+
+
+/* Plan subscription type labels */
+
+.subscription-type-selector {
+  margin-bottom: 30px;
+}
+
+.radiobutton-group label:hover {
+  background: #eee;
+}
+
+
+/* the dumbest tabs */
+
+.plan {
+  display: none;
+}
+
+@keyframes highlight {
+  0% {
+    background: #6b25cf
+  }
+
+  100% {
+    background: #3881E5;
+  }
+}
+
+.radiobutton-tab-container {
+  position: relative;
+}
+
+.radiobutton-tab-container input[type="radio"]:nth-of-type(1):focus~.radiobutton-group .radio-button:nth-of-type(1) label,
+.radiobutton-tab-container input[type="radio"]:nth-of-type(2):focus~.radiobutton-group .radio-button:nth-of-type(2) label {
+  animation: highlight 1s;
+}
+
+.radiobutton-tab-container input[type="radio"]:nth-of-type(1):checked~.radiobutton-group .radio-button:nth-of-type(1) label,
+.radiobutton-tab-container input[type="radio"]:nth-of-type(2):checked~.radiobutton-group .radio-button:nth-of-type(2) label {
+  background-color: #3881E5;
+  color: white;
+  font-weight: 600;
+}
+
+/* sign up step 1 */
+.radiobutton-tab-container input[type="radio"]:nth-of-type(1):checked~.comparison-table .plan-selector .plan.annual,
+.radiobutton-tab-container input[type="radio"]:nth-of-type(2):checked~.comparison-table .plan-selector .plan.monthly {
+  display: block;
+}
+
+/* account page sign up */
+.radiobutton-tab-container input[type="radio"]:nth-of-type(1):checked~.annual-plans,
+.radiobutton-tab-container input[type="radio"]:nth-of-type(2):checked~.monthly-plans {
+  display: flex;
+}
+
+.radiobutton-tab-container input[type=radio] {
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  left: 0;
+}
+
+
+/* FAQ section */
+
+dl.faq button {
+  margin: 0;
+  margin-top: 16px;
+  padding: 4px 25px 0 0;
+  font-weight: 700;
+  font-size: 1.25rem;
+  border: none;
+  background-color: transparent;
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+dl dd {
+  margin: 0;
+  padding: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #D0D0D0;
+}
+
+dl.faq .desc {
+  margin: 0;
+  margin-top: 0.25em;
+  font-size: 1.25rem;
+  display: none;
+  line-height: 1.5;
+}
+
+dl.faq button:hover,
+dl.faq button:focus {
+  cursor: pointer;
+}
+
+dl.faq button[aria-expanded="false"]::after {
+  content: url("data:image/svg+xml,%3csvg width='16' height='10' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M1.7 1.7 8 8 14.3 1.7' stroke='%231a2a4a' fill='none' stroke-width='2'/%3e%3c/svg%3e");
+  position: absolute;
+  right: 0;
+}
+
+dl.faq button[aria-expanded="true"]::after {
+  content: url("data:image/svg+xml,%3csvg width='16' height='10' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M1.7 1.7 8 8 14.3 1.7' stroke='%231a2a4a' fill='none' stroke-width='2'/%3e%3c/svg%3e");
+  position: absolute;
+  right: 0;
+  transform: rotate(180deg);
+}
+
+
+/* Typography */
+
+.signup-flow-step-1-layout h1 {
+  font-weight: 600;
+  font-size: 3rem;
+  margin: 1.5em 0 .5em
+}
+
+.signup-flow-step-1-layout h1 span {
+  font-weight: 700;
+}
+
+.signup-flow-step-1-layout h3 {
+  color: #172A52;
+  font-size: 1.75rem;
+  font-weight: 700;
+  border-bottom: 2px solid #D0D0D0;
+  margin-top: 35px;
+}
+
+.signup-flow-step-1-layout sup {
+  font-weight: 400;
+  color: #666666;
+  font-size: 1rem;
+  line-height: 1.25rem;
+}
+
+.plan-callout {
+  padding-left: 35px;
+  position: relative;
+  padding-top: 15px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.plan-callout::before {
+  content: '';
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='59' height='59' viewBox='0 0 59 59' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M39.5229 18.7224C40.0744 19.2876 40.4553 20.1964 40.1815 21.1661L40.0148 21.7564C37.4717 30.7624 34.1034 39.3992 29.9498 47.5614C29.4012 48.6394 28.2748 48.8933 27.4103 48.6681C26.5645 48.4478 25.7894 47.7565 25.5679 46.7365L23.5167 37.2938C23.29 36.2501 22.429 35.3871 21.4584 35.1679L12.2722 33.0934C11.2368 32.8596 10.578 32.0457 10.3712 31.2186C10.1635 30.3878 10.3715 29.2526 11.4336 28.6753C19.3552 24.3692 27.7422 20.869 36.4922 18.2168L37.0653 18.0431C38.057 17.7425 38.9729 18.1587 39.5229 18.7224ZM37.675 20.5529L37.2403 20.6847C28.8487 23.2283 20.8013 26.5655 13.1904 30.6571L22.0264 32.6525C24.0073 33.0998 25.6043 34.756 26.0367 36.7463L27.9875 45.7269C31.9092 37.914 35.1036 29.6589 37.5331 21.0556L37.675 20.5529Z' fill='%23FFC830'/%3E%3C/svg%3E");
+  width: 40px;
+  height: 50px;
+  display: block;
+  position: absolute;
+  top: 8px;
+  left: -14px;
+}
+
+.signup-hed-price {
+  color: #FFC830;
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+ul.bulleted-list {
+  list-style: disc;
+  margin-left: 2rem;
+}
+
+
+
+@media (max-width: 85em) {
+  .plan-selector .runs {
+    height: 45px;
+    padding: 0.5em;
+  }
+
+  .signup-flow-step-1-layout h1 {
+    font-size: 2.3rem;
+  }
+
+  .plan-callout {
+    font-size: 1.15rem;
+    padding-left: 27px;
+    padding-top: 0;
+  }
+
+  .signup-hed-price {
+    font-size: 2rem;
+  }
+
+  .signup-hed {
+    padding: 0 1.5rem 1.5rem;
+    line-height: 1.5;
+    font-size: 1.15rem;
+  }
+
+  .signup-step-1-content {
+    padding: 0 1rem;
+  }
+
+  .signup-step-1-content h2 {
+    margin: 2rem 0;
+  }
+
+  .plan-callout::before {
+    top: 8px;
+    left: -9px;
+    background-size: 40px;
+    background-repeat: no-repeat;
+  }
+
+  dl.faq .desc,
+  dl.faq button {
+    font-size: 1.15rem;
+  }
+
+  .comparison-table .signup-button {
+    padding: 0.7em 0.7em;
+  }
+}
+
+@media (min-width: 50em) {
+  .signup-hed {
+    padding-left: 3rem
+  }
+}
+
+@media (min-width: 40em) {
+  .signup-hed {
+    padding-bottom: 6rem;
+  }
+}
+
+
+/* Vertical responsive table for showing billing data */
+
+.responsive-vertical-table tr {
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+.responsive-vertical-table th {
+  display: none;
+}
+
+.responsive-vertical-table td {
+  display: block;
+}
+
+.responsive-vertical-table td:first-child {
+  padding-top: .5em;
+}
+
+.responsive-vertical-table td:last-child {
+  padding-bottom: .5em;
+}
+
+.responsive-vertical-table td:before {
+  content: attr(data-th) ": ";
+  font-weight: bold;
+  width: 6.5em;
+  display: inline-block;
+}
+
+@media (min-width: 1030px) {
+  .responsive-vertical-table td:before {
+    display: none;
+  }
+}
+
+.responsive-vertical-table th,
+.responsive-vertical-table td {
+  text-align: left;
+}
+
+@media (min-width: 1030px) {
+
+  .responsive-vertical-table th,
+  .responsive-vertical-table td {
+    display: table-cell;
+  }
+
+  .responsive-vertical-table th:first-child,
+  .responsive-vertical-table td:first-child {
+    padding-left: 0;
+  }
+
+  .responsive-vertical-table th:last-child,
+  .responsive-vertical-table td:last-child {
+    padding-right: 0;
+  }
+}
+
+.responsive-vertical-table {
+  border-radius: .4em;
+  overflow: hidden;
+}
+
+.responsive-vertical-table tr {
+  border-color: #46637f;
 }

@@ -11,40 +11,36 @@ use WebPageTest\Util;
 use WebPageTest\User;
 use WebPageTest\RequestContext;
 use WebPageTest\Exception\ClientException;
+use WebPageTest\Exception\ForbiddenException;
 
-if (Util::getSetting('cp_auth')) {
+if (Util::getSetting('php_sessions')) {
   // Start session handling for this request
   session_start();
 }
 
-$notification_alert = null;
+$client_error = null;
 if (Util::getSetting('cp_auth')) {
-  $notification_alert = $_SESSION['notification_alert'] ?? null;
-  unset($_SESSION['notification_alert']);
+    $client_error = $_SESSION['client_error'] ?? null;
+    unset($_SESSION['client_error']);
 
-  set_exception_handler(function($e) {
-    if(is_a($e, ClientException::class)) {
-     $route = $e->getRoute();
-     $message = $e->getMessage();
-     $host = Util::getSetting('host');
-     unset($_SESSION['notification_alert']);
-     $_SESSION['notification_alert'] = $message;
-     $protocol = "https";
-     $location = "{$protocol}://{$host}{$route}";
-     header('Location: ' . $location);
-     exit();
-    }
-    echo '<pre>';
-    var_dump($e);
-    echo '</pre>';
-
-    /*
-     * for when we ship to prod
-     * throw $e;
-     *
-     */
-    exit();
-  });
+    set_exception_handler(function($e) {
+        if(is_a($e, ForbiddenException::class)) {
+          http_response_code(404);
+          die();
+        } else if(is_a($e, ClientException::class)) {
+            $route = $e->getRoute();
+            $message = $e->getMessage();
+            $host = Util::getSetting('host');
+            unset($_SESSION['client_error']);
+            $_SESSION['client_error'] = $message;
+            $protocol = "https";
+            $location = "{$protocol}://{$host}{$route}";
+            header('Location: ' . $location);
+            exit();
+        }
+        error_log($e->getMessage);
+        throw $e;
+    });
 }
 
 // Load local deps
@@ -180,10 +176,14 @@ if (!$privateInstall) {
 
 // constants
 define('VER_WEBPAGETEST', '21.07');   // webpagetest version
-define('VER_CSS', 172);                // version of the sitewide css file
+define('VER_CSS', @md5_file(__DIR__ . '/pagestyle2.css'));          // version of the sitewide css file
+define('VER_HEADER_CSS', @md5_file(__DIR__ . '/wpt-header.css')); // version of the header css file
+define('VER_ACCOUNT_CSS', @md5_file(__DIR__ . '/css/account.css')); // version of the account css file
+define('VER_BUTTON_CSS', @md5_file(__DIR__ . '/css/button.css'));   // version of the button css file
 define('VER_JS', 41);                 // version of the sitewide javascript file
 define('VER_JS_TEST', 47);            // version of the javascript specific to the test pages
 define('VER_JS_RUNNING', 1);          // version of the javascript specific to the test running status page
+define('VER_JS_ACCOUNT', @md5_file(__DIR__ . '/js/account.js'));          // version of the javascript specific to the test running status page
 define('UNKNOWN_TIME', -1);           // Value used as a flag for an unknown time.
                                       // To find code that fails to check that a time
                                       // is unknown, change this constant to a large
@@ -224,7 +224,7 @@ $USER_EMAIL = null;
 // Supported Authentication types
 $supportsAuth = false;
 $supportsSaml = Util::getSetting('saml_login') !== false;
-$supportsCPAuth = Util::getSetting('cp_auth') !== false;
+$supportsCPAuth = Util::getSetting('cp_auth');
 $supportsGoogleOAuth = Util::getSetting('google_oauth_client_id') && Util::getSetting('google_oauth_client_secret');
 $supportsAuth = $supportsSaml || $supportsCPAuth || $supportsGoogleOAuth;
 
@@ -306,6 +306,20 @@ if (isset($_REQUEST['color'])) {
     $_REQUEST['color'] = $_REQUEST['color'];
 }
 
+if ($supportsSaml && !$supportsCPAuth) {
+  $request_context->setUser($saml_user);
+}
+
+/**
+ * Load app specific middleware
+ */
+if ($supportsCPAuth) {
+  require_once __DIR__ . '/common/AttachClient.php';
+  require_once __DIR__ . '/common/AttachUser.php';
+  require_once __DIR__ . '/common/AttachSignupClient.php';
+  require_once __DIR__ . '/common/CheckCSRF.php';
+}
+
 // Load the test-specific data
 $id = '';
 if (isset($_REQUEST['test']) && preg_match('/^[a-zA-Z0-9_]+$/', @$_REQUEST['test'])) {
@@ -315,6 +329,8 @@ if (isset($_REQUEST['test']) && preg_match('/^[a-zA-Z0-9_]+$/', @$_REQUEST['test
 $median_metric = GetSetting('medianMetric') ? GetSetting('medianMetric') : 'loadTime';
 $testLabel = '';
 $page_title = 'WebPageTest Test';
+$test_is_private = false;
+
 if (strlen($id)) {
     if (isset($_REQUEST['rkey']) && @strlen($_REQUEST['rkey'])) {
         // We are serving a relay request, so munge the id accordingly.
@@ -350,12 +366,20 @@ if (strlen($id)) {
     $cachedText = $cached ? '_Cached' : '';
     $testDate = null;
     if ($test['testinfo']) {
-      if( array_key_exists('completed', $test['testinfo']))
+      if( array_key_exists('completed', $test['testinfo'])) {
           $testDate = strftime('%x %X', (int)$test['testinfo']['completed'] + ($tz_offset * 60));
-      if (array_key_exists('owner', $test['testinfo']) && strlen($owner) && $owner == $test['testinfo']['owner'])
-          $isOwner = true;
-      elseif (array_key_exists('uid', $test['testinfo']) && strlen($uid) && $uid == $test['testinfo']['uid'])
-          $isOwner = true;
+      }
+
+      // $owner is set by CP details in AttachUser middleware if loaded
+      $owner_id_matches_test = array_key_exists('owner', $test['testinfo']) && strlen($owner) && $owner == $test['testinfo']['owner'];
+      $uid_matches_test = array_key_exists('uid', $test['testinfo']) && strlen($uid) && $uid == $test['testinfo']['uid'];
+
+      $isOwner = $owner_id_matches_test || $uid_matches_test;
+      $test_is_private = array_key_exists('private', $test['testinfo']) && !!$test['testinfo']['private'];
+
+      if ($test_is_private && !$isOwner) {
+        throw new ForbiddenException();
+      }
 
       $url = array_key_exists('url', $test['testinfo']) ? htmlspecialchars($test['testinfo']['url']) : null;
       $dom = array_key_exists('domElement', $test['testinfo']) ? htmlspecialchars($test['testinfo']['domElement']) : null;
@@ -412,6 +436,34 @@ if (strlen($id)) {
     if (!array_key_exists('testinfo', $test)) {
         $test['testinfo'] = array();
     }
+
+
+    $experiment = false;
+    if( $test['testinfo'] ){
+      $testTestInfo = $test['testinfo'];
+      $metaInfo = $testTestInfo['metadata'];
+      if( $metaInfo ){
+        $metaInfo = json_decode($metaInfo, true);
+        if( $metaInfo['experiment'] && $metaInfo['experiment']['control'] === false ){
+          $experiment = true;
+
+          require_once __DIR__ . '/include/UrlGenerator.php';
+
+          $experimentOriginalTestUrlGenerator = UrlGenerator::create(FRIENDLY_URLS, "", $metaInfo['experiment']['source_id'], 0, 0 );
+          $experimentOriginalTestHref = $experimentOriginalTestUrlGenerator->resultSummary();
+          $experimentOriginalExperimentsHref = $experimentOriginalTestUrlGenerator->resultPage("experiments");
+
+          $controlTestUrlGenerator = UrlGenerator::create(FRIENDLY_URLS, "", $metaInfo['experiment']['control_id'], 0, 0 );
+          $controlTestHref = $controlTestUrlGenerator->resultSummary();
+
+          $experimentResultsHref = "/video/compare.php?tests=" . $id . ',' . $metaInfo['experiment']['control_id'];
+          $experimentTestHref = "/result/" . $id;
+
+          $experimentOptsUrlGenerator= UrlGenerator::create(FRIENDLY_URLS, "", $id, 0, 0 );
+          $experimentOptsHref = $experimentOptsUrlGenerator->resultPage("experiments");
+        }
+      }
+    }
 }
 
 // see if we need to proxy requests to another server (after restoring the test and if we don't have it locally)
@@ -435,13 +487,3 @@ if (is_file('./settings/custom_common.inc.php')) {
     include('./settings/custom_common.inc.php');
 }
 
-if ($supportsSaml && !$supportsCPAuth) {
-  $request_context->setUser($saml_user);
-}
-
-if ($supportsCPAuth) {
-  require_once __DIR__ . '/common/AttachClient.php';
-  require_once __DIR__ . '/common/AttachUser.php';
-  require_once __DIR__ . '/common/AttachSignupClient.php';
-  require_once __DIR__ . '/common/CheckCSRF.php';
-}

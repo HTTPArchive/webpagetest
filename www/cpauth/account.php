@@ -67,21 +67,7 @@ if ($request_method === 'POST') {
             throw new ClientException($e->getMessage(), "/account");
         }
     } elseif ($type == "delete-api-key") {
-        try {
-            $id = filter_input(INPUT_POST, 'api-key-id', FILTER_SANITIZE_NUMBER_INT);
-            $request_context->getClient()->deleteApiKey(intval($id));
-
-            $protocol = $request_context->getUrlProtocol();
-            $host = Util::getSetting('host');
-            $route = '/account';
-            $redirect_uri = "{$protocol}://{$host}{$route}";
-
-            header("Location: {$redirect_uri}");
-            exit();
-        } catch (Exception $e) {
-            error_log($e->getMessage());
-            throw new ClientException("There was an error", "/account");
-        }
+        AccountHandler::deleteApiKey($request_context);
     } elseif ($type == "resend-verification-email") {
         try {
             $request_context->getClient()->resendEmailVerification();
@@ -106,6 +92,7 @@ if ($request_method === 'POST') {
 
     $is_paid = $request_context->getUser()->isPaid();
     $is_verified = $request_context->getUser()->isVerified();
+    $is_wpt_enterprise = $request_context->getUser()->isWptEnterpriseClient();
     $user_id = $request_context->getUser()->getUserId();
     $user_contact_info = $request_context->getClient()->getUserContactInfo($user_id);
     $user_email = $request_context->getUser()->getEmail();
@@ -114,14 +101,14 @@ if ($request_method === 'POST') {
     $company_name = $user_contact_info['companyName'] ?? "";
 
     $contact_info = array(
-    'layout_theme' => 'b',
-    'is_paid' => $is_paid,
-    'is_verified' => $is_verified,
-    'first_name' => htmlspecialchars($first_name),
-    'last_name' => htmlspecialchars($last_name),
-    'email' => $user_email,
-    'company_name' => htmlspecialchars($company_name),
-    'id' => $user_id
+        'layout_theme' => 'b',
+        'is_paid' => $is_paid,
+        'is_verified' => $is_verified,
+        'first_name' => htmlspecialchars($first_name),
+        'last_name' => htmlspecialchars($last_name),
+        'email' => $user_email,
+        'company_name' => htmlspecialchars($company_name),
+        'id' => $user_id
     );
 
     $billing_info = array();
@@ -129,7 +116,11 @@ if ($request_method === 'POST') {
     $country_list = Util::getCountryList();
 
     if ($is_paid) {
-        $billing_info = $request_context->getClient()->getPaidAccountPageInfo();
+        if ($is_wpt_enterprise) {
+            $billing_info = $request_context->getClient()->getPaidEnterpriseAccountPageInfo();
+        } else {
+            $billing_info = $request_context->getClient()->getPaidAccountPageInfo();
+        }
         $customer_details = $billing_info['braintreeCustomerDetails'];
         $billing_frequency = $customer_details['billingFrequency'] == 12 ? "Annually" : "Monthly";
 
@@ -143,6 +134,7 @@ if ($request_method === 'POST') {
             $billing_info['plan_renewal'] = $plan_renewal_date->format('m/d/Y');
         }
 
+        $billing_info['is_wpt_enterprise'] = $is_wpt_enterprise;
         $billing_info['is_canceled'] = str_contains($customer_details['status'], 'CANCEL');
         $billing_info['billing_frequency'] = $billing_frequency;
         $client_token = $billing_info['braintreeClientToken'];
@@ -161,15 +153,17 @@ if ($request_method === 'POST') {
         foreach ($plans as $plan) {
             if ($plan['billingFrequency'] == 1) {
                 $plan['price'] = number_format(($plan['price']), 2, ".", ",");
+                $plan['annual_price'] = number_format(($plan['price'] * 12.00), 2, ".", ",");
                 $monthly_plans[] = $plan;
             } else {
+                $plan['annual_price'] = number_format(($plan['price']), 2, ".", ",");
                 $plan['monthly_price'] = number_format(($plan['price'] / 12.00), 2, ".", ",");
                 $annual_plans[] = $plan;
             }
         }
         $billing_info = array(
-          'annual_plans' => $annual_plans,
-          'monthly_plans' => $monthly_plans
+            'annual_plans' => $annual_plans,
+            'monthly_plans' => $monthly_plans
         );
     }
 

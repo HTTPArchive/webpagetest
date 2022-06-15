@@ -10,7 +10,9 @@ global $supportsSaml;
 global $supportsCPAuth;
 global $request_context;
 global $_SESSION;
-global $notification_alert;
+global $client_error;
+global $test_is_private;
+global $noanalytics;
 
 $page_title = $page_title ? $page_title : 'WebPageTest';
 ?>

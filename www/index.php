@@ -76,14 +76,21 @@ if( isset($_COOKIE['u']) && isset($_COOKIE['d']) && isset($_COOKIE['l']) )
 $locations = LoadLocations();
 $loc = ParseLocations($locations);
 
+// Is the user a logged in and paid user?
+$is_paid = isset($request_context) && !is_null($request_context->getUser()) && $request_context->getUser()->isPaid();
+
 ?>
 <!DOCTYPE html>
 <html lang="en-us">
     <head>
         <title>WebPageTest - Website Performance and Optimization Test</title>
-        <?php $gaTemplate = 'Main'; include ('head.inc'); ?>
+<?php
+$gaTemplate = 'Main';
+$useScreenshot = true;
+require_once __DIR__ . '/head.inc';
+?>
     </head>
-    <body class="home<?php if ($COMPACT_MODE) {echo ' compact';} ?>">
+    <body class="home feature-pro">
         <?php 
             $tab = 'Start Test';
             include 'header.inc';
@@ -204,6 +211,7 @@ $loc = ParseLocations($locations);
                             <?php
 
                             if (isset($_REQUEST['url']) && strlen($_REQUEST['url'])) {
+                                $url = urldecode($_REQUEST['url']);
                                 $url = htmlentities($_REQUEST['url']);
                                 echo "<input type='text' name='url' id='url' inputmode='url' placeholder='$placeholder' value='$url' class='text large' autocorrect='off' autocapitalize='off' onkeypress='if (event.keyCode == 32) {return false;}'>";
                             } else {
@@ -238,17 +246,20 @@ $loc = ParseLocations($locations);
                                 </div>
                             </div>
                             <div class="test_presets_easy_checks">
-                            <div class="fieldrow" id="description"></div>
-                            <div class="fieldrow">
-                                <label for="rv"><input type="checkbox" name="rv" id="rv" class="checkbox" onclick="rvChanged()"> Include Repeat View <small>(Loads the page, closes the browser and then loads the page again)</small></label>
-                            </div>
-                            <div class="fieldrow">
-                                <label for="lighthouse"><input type="checkbox" name="lighthouse" id="lighthouse" class="checkbox" onclick="lighthouseChanged()"> Run Lighthouse Audit <small>(Runs on Chrome, emulated Moto G4 device, over simulated 3G Fast connection)</small></label>
-                            </div>
+                              <div class="fieldrow" id="description"></div>
+                              <div class="fieldrow">
+                                  <label for="rv"><input type="checkbox" name="rv" id="rv" class="checkbox" onclick="rvChanged()"> Include Repeat View <small>(Loads the page, closes the browser and then loads the page again)</small></label>
+                              </div>
+                              <div class="fieldrow">
+                                  <label for="lighthouse-simple"><input type="checkbox" name="lighthouse" id="lighthouse-simple" class="checkbox"> Run Lighthouse Audit <small>(Runs on Chrome, emulated Moto G4 device, over simulated 3G Fast connection)</small></label>
+                              </div>
+<?php if($is_paid): ?>
+                              <div class="fieldrow">
+                                  <label for="private-simple"><input type="checkbox" name="private" id="private-simple" class="checkbox"> Make Test Private <small>Private tests are only visible to your account</small></label>
+                              </div>
+<?php endif; ?>
                             </div>
 
-
-                            
                             <div class="test_presets_easy_submit">
                             <input type="submit" name="submit" value="Start Test &#8594;" class="start_test">
                         </div>
@@ -492,6 +503,11 @@ $loc = ParseLocations($locations);
                                     <li>
                                       <label for="videoCheck"><input type="checkbox" name="video" id="videoCheck" class="checkbox" checked=checked> Capture Video</label>
                                     </li>
+<?php if($is_paid): ?>
+                                    <li>
+                                      <label for="private-advanced"><input type="checkbox" name="private" id="private-advanced" class="checkbox"> Make Test Private</label>
+                                    </li>
+<?php endif; ?>
                                     <li>
                                         <label for="label">Label</label>
                                         <?php
@@ -613,8 +629,8 @@ $loc = ParseLocations($locations);
                                 <p>Chrome-specific advanced settings:</p>
                                 <ul class="input_fields">
                                     <li>
-                                        <label for="lighthouse" class="auto_width">
-                                        <input type="checkbox" name="lighthouse" id="lighthouse" class="checkbox" style="float: left;width: auto;"> Capture Lighthouse Report <small>(Uses a "3G Fast" connection independent of test settings)</small>
+                                        <label for="lighthouse-advanced" class="auto_width">
+                                        <input type="checkbox" name="lighthouse" id="lighthouse-advanced" class="checkbox" style="float: left;width: auto;"> Capture Lighthouse Report <small>(Uses a "3G Fast" connection independent of test settings)</small>
                                         </label>
                                     </li>
                                     <li><label for="mobile">
@@ -767,10 +783,9 @@ $loc = ParseLocations($locations);
                                     </li>
                                 </ul>
                                 <div class="notification-container">
-                                    <div class="notification"><div class="warning">
-                                        PLEASE USE A TEST ACCOUNT! as your credentials may be available to anyone viewing the results.<br><br>
-                                        Using this feature will make this test Private. Thus, it will *not* appear in Test History.
-                                    </div></div>
+                                  <div class="notification">
+                                    <div class="warning">PLEASE USE A TEST ACCOUNT! as your credentials may be available to anyone viewing the results.</div>
+                                  </div>
                                 </div>
                             </div>
                             <?php } ?>
@@ -808,6 +823,8 @@ $loc = ParseLocations($locations);
                                         </div></div>
                                     </div>
                             </div>
+
+                            
 
                             <div id="block" class="test_subbox ui-tabs-hide">
                                 <p>
@@ -970,8 +987,14 @@ $loc = ParseLocations($locations);
 */
 function LoadLocations()
 {
+    global $request_context;
+    global $admin;
+    $isPaid =  !is_null($request_context->getUser()) && $request_context->getUser()->isPaid();
+    $includePaid = $isPaid || $admin;
+    $ui_priority = $request_context->getUser()->getUserPriority();
+
     $locations = LoadLocationsIni();
-    FilterLocations( $locations );
+    FilterLocations( $locations, $includePaid );
 
     // strip out any sensitive information
     foreach( $locations as $index => &$loc )
@@ -982,7 +1005,6 @@ function LoadLocations()
             if (isset($queues) && is_array($queues) && isset($queues[0])) {
                 // Sum up the queue lengths for anything higher priority than the UI priority
                 $loc['backlog'] = 0;
-                $ui_priority = intval(GetSetting('user_priority', 0));
                 for ($p = 0; $p <= $ui_priority; $p++) {
                     if (isset($queues[$p])) {
                         $loc['backlog'] += $queues[$p];
@@ -1011,8 +1033,14 @@ function LoadLocations()
 function ShowBulk() {
     global $admin;
     global $USER_EMAIL;
+    global $request_context;
     if ($admin)
         return true;
+    if (!is_null($request_context->getUser()) && $request_context->getUser()->isPaid()) {
+        return true;
+    } else if (!is_null($request_context->getUser())) {
+        return false;
+    }
     if (GetSetting('bulk_disabled'))
         return false;
     if (!GetSetting('noBulk'))

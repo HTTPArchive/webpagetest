@@ -2,7 +2,7 @@
 // Copyright 2020 Catchpoint Systems Inc.
 // Use of this source code is governed by the Polyform Shield 1.0.0 license that can be
 // found in the LICENSE.md file.
-include 'common.inc';
+require_once __DIR__ . '/common.inc';
 require_once('object_detail.inc');
 require_once('page_data.inc');
 require_once('waterfall.inc');
@@ -56,7 +56,6 @@ $page_description = "Web Vitals details$testLabel";
                         <p>This page details results from metrics that Google has deemed <a href="https://web.dev/vitals/" target="_blank" rel="noopener">Core Web Vitals <img src='/images/icon-external.svg'></a>. For more information about these metrics and their significance, check out our <a href="https://product.webpagetest.org/core-web-vitals">Core Web Vitals Guide.</a></p>
                     </div>
 
-                    <?php include("testinfo_command-bar.inc"); ?>
 
                 </div>
 

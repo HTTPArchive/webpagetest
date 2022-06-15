@@ -13,6 +13,10 @@ wpt-header {
     position: relative;
     z-index: 9999999;
 }
+/* for compat with systems that set box-sizing globally */
+wpt-header * {
+    box-sizing: content-box;
+}
 
 wpt-header header {
     position: relative;
@@ -244,6 +248,10 @@ wpt-header .wptheader_nav_menu_section a {
     color: #1E4078;
 }
 
+wpt-header .wptheader_nav_menu_content ul {
+    margin-bottom: 1rem;
+}
+
 wpt-header .wptheader_nav_menu_content li {
     display: flex;
     align-items: center;
@@ -330,7 +338,7 @@ wpt-header .wptheader_nav_menu details:focus summary span:after {
         min-height: auto;
         right: auto;
         align-items: center;
-        justify-content: space-around;
+        justify-content: space-between;
     }
     wpt-header nav>ul {
         display: flex;

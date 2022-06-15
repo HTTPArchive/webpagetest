@@ -2,7 +2,7 @@
 // Copyright 2020 Catchpoint Systems Inc.
 // Use of this source code is governed by the Polyform Shield 1.0.0 license that can be
 // found in the LICENSE.md file.
-
+require_once(__DIR__ . '/../vendor/autoload.php');
 
     // deal with magic quotes being enabled
     if (get_magic_quotes_gpc()) {
@@ -61,7 +61,10 @@ use WebPageTest\RateLimiter;
 
     require_once('./ec2/ec2.inc.php');
     require_once(__DIR__ . '/include/CrUX.php');
+    require_once __DIR__ . '/experiments/user_access.inc';
 
+    $experimentURL = Util::getSetting('experimentURL');
+    $ui_priority = $request_context->getUser()->getUserPriority();
 
     set_time_limit(300);
 
@@ -74,7 +77,8 @@ use WebPageTest\RateLimiter;
     $runcount = 0;
     $apiKey = null;
     $is_mobile = false;
-
+    $isPaid = !is_null($request_context->getUser()) && $request_context->getUser()->isPaid();
+    $includePaid = $isPaid || $admin;
     // load the secret key (if there is one)
     $server_secret = Util::getServerSecret();
     $api_keys = null;
@@ -84,7 +88,7 @@ use WebPageTest\RateLimiter;
         $keys_file = __DIR__ . '/settings/common/keys.ini';
       if (file_exists(__DIR__ . '/settings/server/keys.ini'))
         $keys_file = __DIR__ . '/settings/server/keys.ini';
-      $api_keys = parse_ini_file($keys_file, true);	
+      $api_keys = parse_ini_file($keys_file, true);
     }
 
     if( isset($req_f) && !strcasecmp($req_f, 'xml') )
@@ -104,6 +108,13 @@ use WebPageTest\RateLimiter;
     if (!$privateInstall && isset($_REQUEST['k']) && $_REQUEST['k'] != GetServerKey() && isset($api_keys) && !isset($api_keys[$_REQUEST['k']])) {
       foreach ($locations as $name => $location) {
         if (isset($location['browser']) && isset($location['noapi'])) {
+            unset($locations[$name]);
+        }
+      }
+    } else if (!$includePaid){
+      //no key, so we need to look at user status for paid
+      foreach ($locations as $name => $location) {
+        if (isset($location['browser']) && isset($location['premium'])) {
             unset($locations[$name]);
         }
       }
@@ -146,6 +157,12 @@ use WebPageTest\RateLimiter;
             unset($test['batch']);
             if (isset($req_block)) {
               $test['block'] .= ' ' . $req_block;
+            }
+            if (isset($req_spof)) {
+              $test['spof'] .= ' ' . $req_spof;
+            }
+            if (isset($req_runs)) {
+              $test['runs'] = isset($req_runs) ? (int)$req_runs : 1;
             }
             if (isset($req_keepua)) {
               $test['keepua'] = 1;
@@ -190,12 +207,14 @@ use WebPageTest\RateLimiter;
             if ($run_time_limit)
               $test['run_time_limit'] = (int)$run_time_limit;
             $test['connections'] = isset($req_connections) ? (int)$req_connections : 0;
-            // Currently, we do nothing to designate the difference between public and private tests
-            // This creates a problem in that people assume their tests are actually private.
-            // But they're more private in the way that github gists are private, we don't advertise
-            // them, but they're accessible to those that know the url. Until we can create a truly
-            // private test, we are going to treat all tests as public
-            $test['private'] = 0;
+
+            /**
+             * True private tests are a paid feature (we formerly said we had
+             * private tests, but they weren't actually private
+             */
+            $is_private = ($isPaid && ($_POST['private'] == 'on')) ? 1 : 0;
+            $test['private'] = $is_private;
+
             if (isset($req_web10))
               $test['web10'] = $req_web10;
             if (isset($req_ignoreSSL))
@@ -230,7 +249,7 @@ use WebPageTest\RateLimiter;
             $test['median_video'] = isset($req_mv) ? (int)$req_mv : 0;
             if (isset($req_addr))
               $test['ip'] = $req_addr;
-            $test['priority'] = isset($req_priority) ? (int)$req_priority : intval(GetSetting('user_priority', 0));
+            $test['priority'] = isset($req_priority) ? (int)$req_priority : $ui_priority;
             if( isset($req_bwIn) && !isset($req_bwDown) )
                 $test['bwIn'] = (int)$req_bwIn;
             else
@@ -323,6 +342,7 @@ use WebPageTest\RateLimiter;
             $test['max_retries'] = isset($req_retry) ? min((int)$req_retry, 10) : 0;
             if (array_key_exists('keepua', $_REQUEST) && $_REQUEST['keepua'])
                 $test['keepua'] = 1;
+            $test['axe'] = 1;
             if (isset($req_pss_advanced))
               $test['pss_advanced'] = $req_pss_advanced;
             $test['mobile'] = array_key_exists('mobile', $_REQUEST) && $_REQUEST['mobile'] ? 1 : 0;
@@ -451,13 +471,13 @@ use WebPageTest\RateLimiter;
               $test['metadata'] = $metadata;
             }
 
-            // see if we need to process a template for these requests	
+            // see if we need to process a template for these requests
             if (isset($req_k) && strlen($req_k) && isset($api_keys)) {
-              if (count($api_keys) && array_key_exists($req_k, $api_keys) && array_key_exists('template', $api_keys[$req_k])) {	
-                  $template = $api_keys[$req_k]['template'];	
-                  if (is_file("./settings/common/templates/$template.php"))	
-                      include("./settings/common/templates/$template.php");	
-              }	
+              if (count($api_keys) && array_key_exists($req_k, $api_keys) && array_key_exists('template', $api_keys[$req_k])) {
+                  $template = $api_keys[$req_k]['template'];
+                  if (is_file("./settings/common/templates/$template.php"))
+                      include("./settings/common/templates/$template.php");
+              }
             }
 
             // Extract the location, browser and connectivity.
@@ -551,7 +571,7 @@ use WebPageTest\RateLimiter;
                 }
               }
             }
-        
+
             if (!$test['mobile'] && (!$test['browser_width'] || !$test['browser_height'])) {
               $browser_size = GetSetting('default_browser_size');
               if ($browser_size) {
@@ -672,7 +692,7 @@ use WebPageTest\RateLimiter;
                 unset($test['path']);
             if (array_key_exists('spam', $test))
                 unset($test['spam']);
-            $test['priority'] = intval(GetSetting('user_priority', 0));
+            $test['priority'] = $ui_priority;
         }
 
         if ($test['mobile']) {
@@ -746,6 +766,37 @@ use WebPageTest\RateLimiter;
         if (!strlen($error)) {
           ValidateKey($test, $error);
         }
+
+        function buildSpofTest($hosts){
+          $spofScript = "";
+          foreach($hosts as $host) {
+            $host = trim($host);
+            if (strlen($host)) {
+                $spofScript .= "setDnsName\t$host\tblackhole.webpagetest.org\r\n";
+            }
+          }
+
+          if (strlen($spofScript)) {
+            $spofScript .= "setTimeout\t240\r\n";
+          }
+
+          return $spofScript;
+        }
+
+        function buildSelfHost($hosts){
+          global $experimentURL;
+          $selfHostScript = "";
+          foreach($hosts as $host) {
+            $host = trim($host);
+            if (strlen($host)) {
+                $selfHostScript .= "overrideHost\t$host\t$experimentURL\r\n";
+            }
+          }
+
+          return $selfHostScript;
+        }
+
+
         if( !strlen($error) && CheckIp($test) && CheckUrl($test['url']) && CheckRateLimit($test, $error) )
         {
 
@@ -763,14 +814,9 @@ use WebPageTest\RateLimiter;
                         $test['label'] = 'SPOF';
                         $script = '';
                         $hosts = explode("\n", $req_spof);
-                        foreach($hosts as $host) {
-                            $host = trim($host);
-                            if (strlen($host)) {
-                                $script .= "setDnsName\t$host\tblackhole.webpagetest.org\r\n";
-                            }
-                        }
+                        $script = buildSpofTest($hosts);
+
                         if (strlen($script)) {
-                            $script .= "setTimeout\t240\r\n";
                             if (strlen($test['script'])) {
                                 $test['script'] = $script . $test['script'];
                             } else {
@@ -782,6 +828,176 @@ use WebPageTest\RateLimiter;
                             }
                         }
                     }
+                } else if (isset($req_recipes) && count($req_recipes) > 0 )
+                {
+
+                  global $experiments_paid;
+                  global $experiments_logged_in;
+                  // we allow experiment runs on the metric times without paid permissions
+                  $experimentUrlException = !is_null(strpos($test['url'], 'webpagetest.org/themetrictimes' ));
+
+                  if( !$experiments_logged_in && !$experimentUrlException ){
+                    $error = "Must be logged in to use experiments.";
+                  } else { 
+                    // the first non-redirect host is passed in from experiments
+                    $hostToUse = isset( $req_initialHostNonRedirect ) ? $req_initialHostNonRedirect : '%HOST%';
+                    $originToUse = $req_initialOriginNonRedirect ?? '%ORIGIN%';
+                    $test['script'] = "overrideHost\t". $hostToUse ."\t$experimentURL\r\n";
+                    $scriptNavigate = "navigate\t%URL%\r\n";
+                    $test['script'] .= $scriptNavigate;
+
+                    $experimentMetadata = array(
+                      "experiment" => array(
+                        "source_id" => $id,
+                        "control_id" => "",
+                        "control" => true,
+                        "recipes" => array(),
+                        "assessment" => isset($_REQUEST["assessment"]) ? json_decode(urldecode($_REQUEST["assessment"])) : null
+                      )
+                    );
+
+                    // this is for re-running a test with recipes enabled
+                    $recipeScript = '';
+                    $experimentSpof = "";
+                    $experimentBlock = "";
+                    $allowedFreeExperimentIds = array('001');
+                    foreach( $req_recipes as $key=>$value ){
+
+                      // optional, but the experiments page prefixes recipe names with an index and a dash to keep ingredients paired with an opportunity's recipe name
+                      // also, for wpt params (liks spof, block) meant to run on only experiment runs, there's a experiment- prefix after the number
+                      $recipeSansId = $value;
+                      $experimentId = "";
+                      $splitValue = explode("-", $value);
+                      if( count($splitValue) > 1 ){
+                        $experimentId = $splitValue[0];
+                        if( $splitValue[1] === "experiment" ){
+                          $recipeSansId = $splitValue[2];
+                        }
+                        else {
+                          $recipeSansId = $splitValue[1];
+                        }
+                      }
+                      // if user isn't pro-access
+                      if( !$experiments_paid
+                        // and the experimentID is not in the allowed array
+                        && !in_array($experimentId, $allowedFreeExperimentIds)
+                        // and it's not the exception url
+                        && !$experimentUrlException ){
+                          $error = "Attempt to use unauthorized experiments feature.";
+                      } else{
+
+                        $recipeScript .= $recipeSansId;
+                        $experimentSpof = array();
+                        $experimentBlock = array();
+                        $experimentOverrideHost = array();
+                        $experimentRunURL = null;
+                        // TODO should this be $req_$value instead, essentially?
+                        if( $_REQUEST[$value] ){
+                          $ingredients = $_REQUEST[$value];
+                          $experimentMetadata["experiment"]["recipes"][] = array( $experimentId => $ingredients );
+                          if( is_array($ingredients) ){
+                            if( $recipeSansId === "spof" ){
+                              $experimentSpof = $ingredients;
+                            }
+                            if( $recipeSansId === "block" ){
+                              $experimentBlock = $ingredients;
+                            }
+                            if( $recipeSansId === "overrideHost" ){
+                              $experimentOverrideHost = $ingredients;
+                            }
+                            if( $recipeSansId === "setinitialurl"){
+                              $experimentRunURL = $ingredients;
+                            }
+                            if( $recipeSansId === "swap" ){
+                              $experimentSwap = $ingredients;
+                              if( $ingredients[0] ){
+                                $ingredients[0] = rawurlencode($ingredients[0]);
+                              }
+                              if( $ingredients[1] ){
+                                $ingredients[1] = rawurlencode($ingredients[1]);
+                              }
+                              if( $ingredients[2] ){
+                                $ingredients[2] = true;
+                              }
+                              $ingredients = array(implode("|", $ingredients) );
+                            }
+                            $ingredients = implode(",", $ingredients);
+                          }
+                          // these recipes need encoded values. they all do afterwards! TODO
+                          if( $recipeSansId === "insertheadstart"
+                            || $recipeSansId === "insertheadend"
+                            || $recipeSansId === "insertbodyend" ){
+                              $ingredients = rawurlencode($ingredients);
+                          }
+                          $recipeScript .= ":=" . $ingredients;
+                        }
+                        $recipeScript .= ";";
+                      }
+                    }
+
+
+
+                    // Recipes need a control to compare to.
+                    // The control runs over the proxy without any recipes.
+                    // We need to build the 2 tests and
+                    // redirect to the comparison page
+
+                    if( strlen( $recipeScript ) > 0 ){
+                      $recipeTests = array();
+                      $test['video'] = 1;
+                      $test['label'] = 'Original (Control Run)';
+                      $test['metadata'] = json_encode($experimentMetadata);
+                      $id = CreateTest($test, $test['url']);
+
+                      if( isset($id) ) {
+
+                          $recipeTests[] = $id;
+                          $experimentMetadata["experiment"]["control_id"] = $id;
+                          $experimentMetadata["experiment"]["control"] = false;
+                          $test['metadata'] = json_encode($experimentMetadata);
+                          $test['label'] = 'Experiment';
+
+                          // Default WPT test settings that are meant to be used for the experiment will have a experiment- prefix
+                          // if experimentSpof is set...
+
+                          if ( $experimentSpof ) {
+                            $spofScript = buildSpofTest($experimentSpof);
+                            $test['script'] = $spofScript . "\n" . $test['script'];
+                            $test['spof'] .= ' ' . $experimentSpof;
+                          }
+
+                          if ( $experimentOverrideHost ) {
+                            $overrideHostScript = buildSelfHost($experimentOverrideHost);
+                            $test['script'] = $overrideHostScript . "\n" . $test['script'];
+                          }
+
+                          if( $experimentRunURL ){
+                            $test['url'] = urldecode(implode($experimentRunURL));
+                          }
+
+                          // if experimentBlock is set...
+                          if ( $experimentBlock ) {
+                            // if spof is passed as an array, join it by \n
+                            if( count($experimentBlock )){
+                              $experimentBlock = implode("\n", $experimentBlock);
+                            }
+                            $test['block'] .= ' ' . $experimentBlock;
+                          }
+
+
+
+                          //replace last step with last step plus recipes
+                          $test['script'] = str_replace($scriptNavigate, "setCookie\t". $originToUse ."\twpt-experiments=" . urlencode($recipeScript) . "\r\n" . $scriptNavigate, $test['script'] );
+
+
+                          $id = CreateTest($test, $test['url']);
+                          if( isset($id) ) {
+                              $recipeTests[] = $id;
+                          }
+                      }
+                    }
+
+                  }// if logged in or exception url
                 }
                 else if( isset($test['batch_locations']) && $test['batch_locations'] && count($test['multiple_locations']) )
                 {
@@ -813,8 +1029,9 @@ use WebPageTest\RateLimiter;
                       }
                     }
                 }
-                elseif( isset($test['batch']) && $test['batch'] )
-                {
+                elseif( isset($test['batch']) && $test['batch'] ) {
+                  //first, we see if they're a paid user
+                  if ($isPaid || $admin) {
                     // build up the full list of URLs
                     $bulk = array();
                     $bulk['urls'] = array();
@@ -947,19 +1164,20 @@ use WebPageTest\RateLimiter;
                         }
 
                         // write out the list of URLs and the test ID for each
-                        if( $testCount )
-                        {
+                        if( $testCount ) {
                             $path = GetTestPath($test['id']);
                             gz_file_put_contents("./$path/bulk.json", json_encode($bulk));
+                        } else {
+                          $error = 'URLs could not be submitted for testing';
                         }
-                        else
-                            $error = 'URLs could not be submitted for testing';
-                    }
-                    else
+                    } else {
                         $error = "No valid URLs submitted for bulk testing";
-                }
-                else
-                {
+                    }
+                  } else {
+                    $error = 'Bulk testing is only available for WebPageTest Pro subscribers.';
+                  }
+
+                } else {
                     $test['id'] = CreateTest($test, $test['url']);
                     if( !$test['id'] && !strlen($error) )
                         $error = 'Error submitting URL for testing';
@@ -1035,6 +1253,8 @@ use WebPageTest\RateLimiter;
                 {
                     if (isset($spofTests) && count($spofTests) > 1) {
                         header("Location: $protocol://$host$uri/video/compare.php?tests=" . implode(',', $spofTests));
+                    } else if (isset($recipeTests) && count($recipeTests) > 1) {
+                        header("Location: $protocol://$host$uri/video/compare.php?tests=" . $recipeTests[1] . ',' . $recipeTests[0] );
                     } else {
                         // redirect regardless if it is a bulk test or not
                         $view = '';
@@ -1207,7 +1427,6 @@ function ValidateKey(&$test, &$error, $key = null)
   global $uid;
   global $user;
   global $USER_EMAIL;
-  global $runcount;
   global $apiKey;
   global $forceValidate;
   global $server_secret;
@@ -1251,9 +1470,7 @@ function ValidateKey(&$test, &$error, $key = null)
         $keys_file = __DIR__ . '/settings/server/keys.ini';
       $keys = parse_ini_file($keys_file, true);
 
-      $runcount = max(1, $test['runs']);
-      if( !$test['fvonly'] )
-        $runcount *= 2;
+      $runcount = Util::getRunCount($test['runs'], $test['fvonly'], $test['lighthouse'], $test['type']);
       //if (array_key_exists('navigateCount', $test) && $test['navigateCount'] > 0)
       //  $runcount *= $test['navigateCount'];
 
@@ -1345,8 +1562,8 @@ function ValidateKey(&$test, &$error, $key = null)
                     $test['accountId'] = $account['accountId'];
                     $test['contactId'] = $account['contactId'];
                     // success.  See if there is a priority override for redis-based API tests
-                    if (GetSetting('redis_api_priority', FALSE) !== FALSE) {
-                      $test['priority'] = intval(GetSetting('redis_api_priority'));
+                    if (Util::getSetting('paid_priority')) {
+                      $test['priority'] = intval(Util::getSetting('paid_priority'));
                     }
                   } else {
                     $error = 'The test request will exceed the remaining test balance for the given API key';
@@ -1392,6 +1609,10 @@ function ValidateKey(&$test, &$error, $key = null)
 function ValidateParameters(&$test, $locations, &$error, $destination_url = null)
 {
     global $use_closest;
+    global $admin;
+    global $experiments_paid;
+    global $experiments_logged_in;
+    global $experimentURL;
 
     if( isset($test['script']) && strlen($test['script']) )
     {
@@ -1402,6 +1623,10 @@ function ValidateParameters(&$test, $locations, &$error, $destination_url = null
 
     if( strlen($test['url']) || $test['batch'] )
     {
+      if ((stripos($test['url'], $experimentURL) !== false)
+        && (!$admin && !$experimentsPaid)) {
+        $error = "Experiments are only available for WebPageTest Pro subscribers.";
+      } else {
         $maxruns = (int)GetSetting('maxruns', 0);
         if( isset($_COOKIE['maxruns']) && $_COOKIE['maxruns'] )
             $maxruns = (int)$_COOKIE['maxruns'];
@@ -1570,6 +1795,7 @@ function ValidateParameters(&$test, $locations, &$error, $destination_url = null
                     $test['testLatency'] = max(0, $test['latency'] - $locations[$test['location']]['latency'] );
             }
         }
+      }
     } elseif( !strlen($error) ) {
         $error = "Invalid URL, please try submitting your test request again.";
     }
@@ -1584,6 +1810,11 @@ function ValidateParameters(&$test, $locations, &$error, $destination_url = null
 function ValidateScript(&$script, &$error)
 {
     global $test;
+    global $admin;
+    global $experiments_paid;
+    global $experiments_logged_in;
+    global $experimentURL;
+
     $url = null;
     if (stripos($script, 'webdriver.Builder(') === false) {
         global $test;
@@ -1605,9 +1836,9 @@ function ValidateScript(&$script, &$error)
                 }
                 $ok = true;
                 $url = trim($tokens[1]);
-                if (stripos($url, '%URL%') !== false || 
-                        stripos($url, '%ORIGIN%') !== false || 
-                        stripos($url, '%HOST%') !== false || 
+                if (stripos($url, '%URL%') !== false ||
+                        stripos($url, '%ORIGIN%') !== false ||
+                        stripos($url, '%HOST%') !== false ||
                         stripos($url, '%HOSTR%') !== false ||
                         stripos($url, '%HOST_REGEX%') !== false) {
                     $url = null;
@@ -1638,6 +1869,14 @@ function ValidateScript(&$script, &$error)
               if ($loggingData) {
                 $stepCount++;
               }
+            } elseif ( !strcasecmp($command, 'overrideHost') ) {
+              //check if experiment URL is being used
+              if (stripos($tokens[2], $experimentURL) !== false
+                && (!$admin && !$experimentsPaid)
+              ) {
+                $error = "Experiments are only available for WebPageTest Pro subscribers.";
+              }
+
             }
         }
         if (!isset($test['steps']) || $stepCount > $test['steps']) {
@@ -1978,13 +2217,16 @@ function GetRedirect($url, &$rhost, &$rurl) {
 */
 function LogTest(&$test, $testId, $url)
 {
-    global $runcount;
     global $apiKey;
     global $USER_EMAIL;
+    global $supportsCPAuth;
+    global $request_context;
+
     if (GetSetting('logging_off')) {
         server_sync($apiKey, $runcount, null);
         return;
     }
+    $runcount = Util::getRunCount($test['runs'], $test['fvonly'], $test['lighthouse'], $test['type']);
 
     if( !is_dir('./logs') )
         mkdir('./logs', 0777, true);
@@ -2004,8 +2246,16 @@ function LogTest(&$test, $testId, $url)
     //    $pageLoads *= $test['navigateCount'];
 
     $user_info = '';
-    if ($supportsSaml) {
+    $client_id = null;
+    $create_contact_id = null;
+    if ($supportsCPAuth && isset($request_context) && !is_null($request_context->getUser())) {
+      $user_info = $request_context->getUser()->getEmail();
+      $client_id = $request_context->getUser()->getOwnerId();
+      $create_contact_id = $request_context->getUser()->getUserId();
+    } elseif ($supportsSaml) {
       $saml_email = GetSamlEmail();
+      $client_id = GetSamlAccount();
+      $create_contact_id = GetSamlContact();
       if (isset($saml_email)) {
         $user_info = $saml_email;
       }
@@ -2013,10 +2263,12 @@ function LogTest(&$test, $testId, $url)
       $user_info = $test['user'];
     } elseif (isset($_COOKIE['google_email']) && strlen($_COOKIE['google_email']) && isset($_COOKIE['google_id'])) {
       $user_info = $_COOKIE['google_email'];
+    } else {
+      $user_info = $USER_EMAIL;
     }
 
-    $redis_server = GetSetting('redis_test_history');
-    
+    $redis_server = Util::getSetting('redis_test_history');
+
     $key = isset($test['key']) ? $test['key'] : null;
     if ($key == GetServerKey()) {
       $key = null;
@@ -2027,17 +2279,18 @@ function LogTest(&$test, $testId, $url)
         'guid' => @$testId,
         'url' => @$url,
         'location' => @$test['locationText'],
-        'private' => 0,
+        'private' => $test['private'],
         'testUID' => @$test['uid'],
         'testUser' => $user_info,
         'video' => @$video,
         'label' => @$test['label'],
         'owner' => @$test['owner'],
         'key' => $key,
-        'count' => @$pageLoads,
+        'count' => @$runcount,
         'priority' => @$test['priority'],
-        'email' => $USER_EMAIL,
-        'redis' => $redis_server ? '1' : '0'
+        'email' => $user_info,
+        'redis' => $redis_server ? '1' : '0',
+        'lighthouse' => @$test['lighthouse']
     );
 
     $log = makeLogLine($line_data);
@@ -2053,18 +2306,19 @@ function LogTest(&$test, $testId, $url)
         'guid' => @$testId,
         'url' => @$url,
         'location' => @$test['locationText'],
-        'private' => 0,
+        'private' => $test['private'],
         'testUID' => @$test['uid'],
-        'testUser' => $USER_EMAIL,
+        'testUser' => $user_info,
         'video' => @$video,
         'label' => @$test['label'],
         'owner' => @$test['owner'],
         'key' => $key,
-        'count' => @$pageLoads,
-        'runs' => @$pageLoads,
+        'count' => @$runcount,
+        'runs' => @$runcount,
         'priority' => @$test['priority'],
-        'clientId' => GetSamlAccount(),
-        'createContactId' => GetSamlContact()
+        'clientId' => $client_id,
+        'createContactId' => $create_contact_id,
+        'lighthouse' => @$test['lighthouse']
       );
       if (isset($logEntry['location'])) {
         $logEntry['location'] = strip_tags($logEntry['location']);
@@ -2266,12 +2520,25 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
 
         // generate the test ID
         $testId = GenerateTestID($test['private'], $locationShard);
+
+        // if this is an experiment, and it's a control run, it needs its control_id field set to its own id
+        if( $test['metadata'] ){
+          $meta = json_decode($test['metadata']);
+          if (isset($meta) && is_array($meta) && $meta['experiment'] ){
+            if( $meta['control_id'] === "" ){
+              $meta['control_id'] = $testId;
+              $test['metadata'] = json_encode($meta);
+            }
+          }
+        }
+
+
         $test['path'] = './' . GetTestPath($testId);
 
         // create the folder for the test results
-        if( !is_dir($test['path']) ) 
+        if( !is_dir($test['path']) )
             mkdir($test['path'], 0777, true);
-        
+
         // Fetch the CrUX data for the URL
         $crux_data = GetCruxDataForURL($url, $is_mobile);
         if (isset($crux_data) && strlen($crux_data)) {
@@ -2299,6 +2566,7 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
         AddIniLine($testInfo, "batch", $batch);
         AddIniLine($testInfo, "batch_locations", $batch_locations);
         AddIniLine($testInfo, "sensitive", $test['sensitive']);
+        AddIniLine($testInfo, "private", $test['private']);
         if( isset($test['login']) && strlen($test['login']) )
             AddIniLine($testInfo, "authenticated", "1");
         AddIniLine($testInfo, "connections", $test['connections']);
@@ -2458,6 +2726,8 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
                 $job['clearRV'] = 1;
             if( isset($test['keepua']) && $test['keepua'] )
                 $job['keepua'] = 1;
+            if( isset($test['axe']) && $test['axe'] )
+                $job['axe'] = 1;
             if( isset($test['mobile']) && $test['mobile'] )
                 $job['mobile'] = 1;
             if( isset($test['lighthouse']) && $test['lighthouse'] )
@@ -2584,7 +2854,7 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
             // Write out the json before submitting the test to the queue
             $oldUrl = @$test['url'];
             $test['url'] = $url;
-            $test['id'] = $testId; 
+            $test['id'] = $testId;
             SaveTestInfo($testId, $test);
             $test['url'] = $oldUrl;
 
@@ -2593,7 +2863,7 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
         } elseif (isset($testId)) {
             $oldUrl = @$test['url'];
             $test['url'] = $url;
-            $test['id'] = $testId; 
+            $test['id'] = $testId;
             SaveTestInfo($testId, $test);
             $test['url'] = $oldUrl;
         }
@@ -2969,7 +3239,7 @@ function ReportAnalytics(&$test, $testId)
     $ip = $_SERVER['REMOTE_ADDR'];
     if( array_key_exists('ip',$test) && strlen($test['ip']) )
         $ip = $test['ip'];
-    
+
     $eventName = $usingAPI ? 'API' : 'Manual';
     if ($usingApi2) {
       $eventName = 'API2';
@@ -3054,6 +3324,9 @@ function loggedInPerks(){
 function CheckRateLimit($test, &$error) {
   global $USER_EMAIL;
   global $supportsSaml;
+  global $supportsCPAuth;
+  global $request_context;
+
   $ret = true;
 
   // Only check when we have a valid remote IP
@@ -3067,13 +3340,16 @@ function CheckRateLimit($test, &$error) {
   }
 
   // let logged-in users pass
+  if ($supportsCPAuth && isset($request_context) && !is_null($request_context->getUser())) {
+    if ($request_context->getUser()->getEmail()) {
+      return true;
+    }
+  }
   if (isset($USER_EMAIL) && strlen($USER_EMAIL)) {
     return true;
   }
 
-  $runcount = max(1, $test['runs']);
-  $multiplier = $test['fvonly'] ? 1 : 2;
-  $total_runs = $runcount * $multiplier;
+  $total_runs = Util::getRunCount($test['runs'], $test['fvonly'], $test['lighthouse'], $test['type']);
   $monthly_limit = Util::getSetting('rate_limit_anon_monthly') ?: 50;
   $cmrl = new RateLimiter($test['ip'], $monthly_limit);
   $passesMonthly = $cmrl->check($total_runs);

@@ -3,6 +3,7 @@
 // Use of this source code is governed by the Polyform Shield 1.0.0 license that can be
 // found in the LICENSE.md file.
 include 'common.inc';
+
 if (isset($_REQUEST['k'])) {
   $keys_file = __DIR__ . '/settings/keys.ini';
   if (file_exists(__DIR__ . '/settings/common/keys.ini'))
@@ -59,6 +60,8 @@ if( array_key_exists('f', $_REQUEST) && $_REQUEST['f'] == 'json' ) {
 *
 */
 function GetAllAddresses($include_sensitive = true) {
+  global $request_context;
+  global $admin;
   $locations = array();
   $loc = LoadLocationsIni();
 
@@ -72,7 +75,10 @@ function GetAllAddresses($include_sensitive = true) {
   }
 
   BuildLocations($loc);
-  FilterLocations($loc, $include_sensitive);
+  $isPaid = !is_null($request_context->getUser()) && $request_context->getUser()->isPaid();
+  $includePaid = $isPaid || $admin;
+
+  FilterLocations($loc, $includePaid, $include_sensitive);
 
   $i = 1;
   while (isset($loc['locations'][$i])) {
