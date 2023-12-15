@@ -80,7 +80,7 @@ class RunResultHtmlTable
 
 
         // disable env impact if not collected
-        if (count($this->runResults->getStepResult(1)->getMetric(self::COL_ENV_IMP)) === 0) {
+        if ($this->runResults->getStepResult(1)->getMetric(self::COL_ENV_IMP) && count($this->runResults->getStepResult(1)->getMetric(self::COL_ENV_IMP)) === 0) {
             $this->enabledColumns[self::COL_ENV_IMP] = false;
         }
 
@@ -568,9 +568,12 @@ class RunResultHtmlTable
                     ['custom' => $customMetrics],
                     (new Timings($this->runResults))->getAllForStep($stepNum),
                 );
-                $out .= view('partials.timings', [
-                    'data' => $timingsAndMetrics,
-                ]);
+                try {
+                    $out .= view('partials.timings', [
+                        'data' => $timingsAndMetrics,
+                    ]);
+                } catch (\Exception $e) {
+                }
             }
         }
         return $out;

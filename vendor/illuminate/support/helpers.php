@@ -115,6 +115,10 @@ if (! function_exists('e')) {
             return $value->toHtml();
         }
 
+        if (is_array($value)) {
+            $value = json_encode($value);
+        }
+
         return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8', $doubleEncode);
     }
 }

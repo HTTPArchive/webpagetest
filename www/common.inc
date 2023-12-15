@@ -518,7 +518,9 @@ if (strlen($id)) {
     if ($test['testinfo']) {
         $testTestInfo = $test['testinfo'];
         if (!empty($testTestInfo['metadata'])) {
-            $metaInfo = json_decode($testTestInfo['metadata'], true);
+            if (!is_array($testTestInfo['metadata'])) {
+                $metaInfo = json_decode($testTestInfo['metadata'], true);
+            }
             if ($metaInfo['experiment'] && $metaInfo['experiment']['control'] === false) {
                 $experiment = true;
 
