@@ -444,6 +444,12 @@ if (!isset($test)) {
     if (array_key_exists('tester', $_REQUEST) && preg_match('/[a-zA-Z0-9\-_]+/', $_REQUEST['tester'])) {
         $test['affinity'] = 'Tester' . $_REQUEST['tester'];
     }
+    if (isset($_REQUEST['wappalyzerPR'])) {
+        $pr = intval($_REQUEST['wappalyzerPR']);
+        if ($pr) {
+            $test['wappalyzerPR'] = $pr;
+        }
+    }
 
     // custom options
     $test['cmdLine'] = '';
@@ -2916,6 +2922,9 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
             if (isset($test['axe']) && $test['axe']) {
                 $job['axe'] = 1;
             }
+            if (isset($test['wappalyzerPR'])) {
+                $job['wappalyzerPR'] = $test['wappalyzerPR'];
+            }
             if (isset($test['mobile']) && $test['mobile']) {
                 $job['mobile'] = 1;
             }
@@ -3032,6 +3041,9 @@ function CreateTest(&$test, $url, $batch = 0, $batch_locations = 0)
             }
             if (isset($test['axe']) && $test['axe']) {
                 $job['axe'] = 1;
+            }
+            if (isset($test['wappalyzerPR'])) {
+                $job['wappalyzerPR'] = $test['wappalyzerPR'];
             }
             // Pass the WPT server hostname to the agent
             $hostname = GetSetting('host');
