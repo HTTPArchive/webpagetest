@@ -71,6 +71,7 @@
     </div>
 
     <script>
+        /*
         let featureSlides = setInterval(() => {
             if( document.body.querySelector(".home_feature_hed-main") && !document.body.classList.contains("playing") && ( !document.activeElement || document.activeElement.tagName !== 'IFRAME' ) && matchMedia("(prefers-reduced-motion: no-preference)").matches ){
                 if( document.body.classList.contains("feature-pro") ){
@@ -87,12 +88,12 @@
 
             }
         },8000);
-
+        */
         <?php if (isset($req_cc)) {?>
-            clearTimeout(featureSlides);
+            // clearTimeout(featureSlides);
         <?php } ?>
 
-
+        /*
         (function(){
                 var intro = document.querySelector("video");
                 var playbtn = document.querySelector(".play");
@@ -147,7 +148,7 @@
                     }
                 });
             }());
-
+        */
     </script>
 
 

@@ -97,7 +97,7 @@ header('Server-Timing: ' . $Timers->getTimers());
 </head>
 
 <?php
-$homeclass = "feature-cc";
+$homeclass = "feature-lfwp";
 if (!is_null($request_context->getUser()) && $request_context->getUser()->isPaid() && !isset($req_cc)) {
     $homeclass = "feature-pro";
 }
