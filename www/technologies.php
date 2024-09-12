@@ -23,6 +23,7 @@ $detected = @$pageData[$run][$cached]['detected_technologies'];
 
 if (empty($detected)) {
     $error_message = 'No known technologies were detected';
+    $detected = [];
 }
 
 // template
