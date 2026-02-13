@@ -334,12 +334,22 @@ function RestoreArchive($id)
                 GetSetting('archive_dir') ||
                 GetSetting('archive_url') ||
                 GetSetting('archive_s3_url') ||
-                GetSetting('archive_s3_server')
+                GetSetting('archive_s3_server') ||
+                GetSetting('archive_gcloud_path')
             ) {
                 $deleteZip = true;
                 $do_not_download = false;
                 $zipfile = "./tmp/$id.zip";
-                if ($capture_server && $capture_salt) {
+                if (GetSetting('archive_gcloud_path')) {
+                    putenv("GOOGLE_APPLICATION_CREDENTIALS=" . __DIR__ ."/settings/application_default_credentials.ini");
+                    $gcloud_path = GetSetting('archive_gcloud_path');
+                    $command = "gcloud storage cp $gcloud_path/$id.zip $zipfile 2>&1";
+                    $output = shell_exec($command);
+                    $archive_log = GetSetting('archive_log');
+                    if ($archive_log) {
+                        error_log(gmdate('Y/m/d H:i:s - ') . "$id - $command - $output\n", 3, $archive_log);
+                    }
+                } else if ($capture_server && $capture_salt) {
                     $do_not_download = true;
                     $host = str_replace('.', '', trim(GetSetting('host')));
                     $cpid = GetCPID($host, $capture_salt);

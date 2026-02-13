@@ -1300,12 +1300,14 @@ function RestoreTest($id)
             $archive_url = GetSetting('archive_url');
             $archive_s3_url = GetSetting('archive_s3_url');
             $archive_s3_server = GetSetting('archive_s3_server');
+            $gcloud_path = GetSetting('archive_gcloud_path');
             if (
                 ($capture_server && $capture_salt) ||
                 ($archive_dir && strlen($archive_dir)) ||
                 ($archive_url && strlen($archive_url)) ||
                 ($archive_s3_url && strlen($archive_s3_url)) ||
-                ($archive_s3_server && strlen($archive_s3_server))
+                ($archive_s3_server && strlen($archive_s3_server)) ||
+                ($gcloud_path && strlen($gcloud_path))
             ) {
                 $ret = RestoreArchive($id);
             } else {
